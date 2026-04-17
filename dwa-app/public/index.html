@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>DWA Hydraulik-Rechner v2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--dwa:#004B87;--dwal:#0066B3;--dwad:#003366;--bg:#F4F5F7;--g2:#E5E7EB;--g3:#D1D5DB;--g5:#6B7280;--g7:#374151;--g9:#111827;--ok:#22C55E;--warn:#F59E0B;--err:#EF4444;--w:#fff;--sw:236px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--g9);display:flex;height:100vh;overflow:hidden;font-size:13px;}
+#sidebar{width:var(--sw);background:var(--dwad);color:#fff;display:flex;flex-direction:column;flex-shrink:0;overflow:hidden;}
+#sidebar .logo{padding:12px 13px 9px;border-bottom:1px solid rgba(255,255,255,.14);}
+#sidebar .logo h1{font-size:14px;font-weight:800;letter-spacing:.2px;}
+#sidebar .logo p{font-size:9.5px;opacity:.6;margin-top:1px;}
+#sidebar nav{flex:1;overflow-y:auto;padding:6px 0;}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:.15s;border-left:3px solid transparent;}
+.ni:hover{background:rgba(255,255,255,.08);}
+.ni.active{background:rgba(255,255,255,.14);border-left-color:#7EC8E3;}
+.ni .ic{font-size:14px;flex-shrink:0;}
+.ni .mod{font-size:8.5px;opacity:.55;text-transform:uppercase;letter-spacing:.4px;}
+.ni .nm{font-weight:600;font-size:11.5px;}
+#sidebar .bot{padding:8px 12px;border-top:1px solid rgba(255,255,255,.14);}
+.lang-bar{display:flex;gap:5px;margin-bottom:6px;}
+.lb{flex:1;padding:4px;border:1px solid rgba(255,255,255,.28);background:transparent;color:#fff;border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;transition:.15s;}
+.lb.active{background:rgba(255,255,255,.2);}
+.audit-row{display:flex;align-items:center;gap:6px;font-size:10px;opacity:.85;}
+.tog{width:32px;height:16px;background:rgba(255,255,255,.25);border-radius:8px;cursor:pointer;position:relative;transition:.2s;flex-shrink:0;}
+.tog.on{background:#22C55E;}
+.tog::after{content:'';position:absolute;width:12px;height:12px;background:#fff;border-radius:50%;top:2px;left:2px;transition:.2s;}
+.tog.on::after{left:18px;}
+.norm-sel{font-size:10px;margin-top:6px;}
+.norm-sel label{opacity:.7;display:block;margin-bottom:3px;}
+.norm-sel select{width:100%;padding:3px 5px;font-size:10px;border-radius:3px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+#topbar{background:var(--w);border-bottom:1px solid var(--g2);padding:8px 15px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+#topbar h2{font-size:13.5px;font-weight:700;color:var(--dwa);}
+#topbar .nb{background:var(--dwa);color:#fff;font-size:9.5px;padding:2px 7px;border-radius:20px;font-weight:700;}
+#draft-banner{display:none;background:#FEF3C7;border-bottom:1px solid #F59E0B;padding:5px 15px;font-size:10.5px;color:#92400E;font-weight:600;}
+#content{flex:1;display:flex;overflow:hidden;}
+#fp{width:310px;flex-shrink:0;overflow-y:auto;background:var(--w);border-right:1px solid var(--g2);padding:11px;}
+#rp{flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:10px;}
+.sec{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--dwa);border-bottom:2px solid var(--dwa);padding-bottom:3px;margin:10px 0 7px;}
+.field{margin-bottom:8px;}
+.field label{display:block;font-size:10.5px;font-weight:600;color:var(--g7);margin-bottom:2px;}
+.field .nr{font-size:8.5px;color:var(--g5);font-style:italic;}
+.fr{display:flex;gap:4px;align-items:flex-end;}
+.fr .field{flex:1;margin-bottom:0;}
+input[type=number],input[type=text],select{width:100%;padding:5px 6px;border:1px solid var(--g3);border-radius:4px;font-size:11.5px;color:var(--g9);background:var(--w);}
+input:focus,select:focus{outline:none;border-color:var(--dwa);box-shadow:0 0 0 2px rgba(0,75,135,.1);}
+.unit{font-size:9.5px;color:var(--g5);background:var(--bg);border:1px solid var(--g3);border-radius:4px;padding:5px 5px;white-space:nowrap;}
+.btn-p{width:100%;padding:8px;background:var(--dwa);color:#fff;border:none;border-radius:4px;font-weight:700;font-size:12px;cursor:pointer;margin-top:10px;}
+.btn-p:hover{background:var(--dwal);}
+.btn-o{width:100%;padding:6px;background:transparent;color:var(--dwa);border:1px solid var(--dwa);border-radius:4px;font-size:10.5px;cursor:pointer;margin-top:4px;}
+.btn-pdf{width:100%;padding:6px;background:#DC2626;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:5px;}
+.btn-pdf:disabled{opacity:.45;cursor:not-allowed;}
+.card{background:var(--w);border:1px solid var(--g2);border-radius:5px;overflow:hidden;}
+.chd{background:var(--dwa);color:#fff;padding:6px 11px;font-size:11.5px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.cbd{padding:10px;}
+.rt{width:100%;border-collapse:collapse;font-size:11px;}
+.rt th{background:var(--bg);text-align:left;padding:5px 7px;font-weight:700;font-size:10px;color:var(--g7);border-bottom:2px solid var(--g3);}
+.rt td{padding:5px 7px;border-bottom:1px solid var(--g2);}
+.rt tr:last-child td{border-bottom:none;}
+.rt tr:nth-child(even) td{background:#FAFBFC;}
+.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;border-radius:20px;font-size:9.5px;font-weight:700;}
+.bok{background:#DCFCE7;color:#15803D;}.bwarn{background:#FEF9C3;color:#92400E;}.berr{background:#FEE2E2;color:#991B1B;}
+.kg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:4px;}
+.kp{background:var(--bg);border-radius:4px;padding:8px;text-align:center;}
+.kv{font-size:17px;font-weight:800;color:var(--dwa);}
+.ku{font-size:9px;color:var(--g5);}
+.kl{font-size:9.5px;color:var(--g7);margin-top:1px;font-weight:600;}
+/* AUDIT STEPS */
+.audit-block{border-left:3px solid var(--dwa);padding:5px 9px;margin-bottom:6px;background:#EFF6FF;border-radius:0 4px 4px 0;font-size:10.5px;line-height:1.65;}
+.audit-block .at{font-weight:700;color:var(--dwa);margin-bottom:1px;font-size:11px;}
+.formula{font-family:'Courier New',monospace;background:rgba(0,0,0,.07);padding:2px 5px;border-radius:3px;display:inline-block;margin:1px 0;font-size:10px;}
+.norm-tag{font-size:8.5px;background:#E0F2FE;color:#0369A1;padding:1px 5px;border-radius:3px;margin-left:4px;font-weight:600;}
+/* ERROR CODES */
+.err-block{border:1px solid var(--err);background:#FEF2F2;border-radius:4px;padding:7px 10px;margin-bottom:6px;font-size:10.5px;}
+.err-block .ec{font-weight:800;color:var(--err);font-family:monospace;}
+.warn-block{border:1px solid #F59E0B;background:#FFFBEB;border-radius:4px;padding:7px 10px;margin-bottom:6px;font-size:10.5px;}
+.warn-block .wc{font-weight:800;color:#B45309;font-family:monospace;}
+.chart-wrap{position:relative;height:175px;}
+.idf-tbl{width:100%;border-collapse:collapse;font-size:10px;}
+.idf-tbl th,.idf-tbl td{padding:3px 5px;border:1px solid var(--g2);text-align:right;}
+.idf-tbl th{background:var(--dwa);color:#fff;font-weight:700;}
+.idf-tbl td:first-child{font-weight:700;background:var(--bg);text-align:left;}
+.scrollable{overflow-x:auto;}
+.empty{text-align:center;padding:32px 14px;color:var(--g5);}
+.risk-matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:8px;}
+.rm-cell{padding:8px 5px;border-radius:4px;text-align:center;font-size:10px;font-weight:700;}
+#pdf-st{font-size:9.5px;color:var(--g5);text-align:center;margin-top:3px;min-height:13px;}
+/* ── SUPABASE PANEL ── */
+.sb-panel{padding:8px 12px;border-top:1px solid rgba(255,255,255,.14);font-size:10px;}
+.sb-panel .sp-title{font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.5px;opacity:.55;margin-bottom:5px;}
+#db-status{font-size:9.5px;margin-bottom:5px;}
+#project-selector{width:100%;padding:3px 5px;font-size:10px;border-radius:3px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;margin-bottom:4px;}
+.sb-btn{width:100%;padding:4px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:3px;cursor:pointer;font-size:9.5px;font-weight:600;margin-bottom:3px;transition:.15s;}
+.sb-btn:hover{background:rgba(255,255,255,.15);}
+.sb-btn.save{background:rgba(34,197,94,.25);border-color:#22C55E;}
+#calc-history{max-height:80px;overflow-y:auto;margin-top:4px;}
+.hist-item{padding:4px 6px;border-radius:3px;cursor:pointer;border:1px solid rgba(255,255,255,.12);margin-bottom:3px;transition:.12s;}
+.hist-item:hover{background:rgba(255,255,255,.1);}
+</style>
+</head>
+<body>
+<div id="sidebar">
+  <div class="logo"><h1>🌊 DWA-Rechner v2</h1><p id="ls">Hydraulische Berechnungen</p></div>
+  <nav id="nav"></nav>
+  <div class="bot">
+    <div class="lang-bar">
+      <button class="lb active" onclick="setLang('de')" id="bde">DE</button>
+      <button class="lb" onclick="setLang('en')" id="ben">EN</button>
+    </div>
+    <div class="audit-row">
+      <div class="tog" id="audit-tog" onclick="toggleAudit()"></div>
+      <span id="audit-lbl">Audit-Modus</span>
+    </div>
+    <div class="norm-sel">
+      <label id="nv-lbl">Normversion:</label>
+      <select id="norm-ver" onchange="onNormVerChange()">
+        <option value="current">DWA aktuell (Standard)</option>
+        <option value="draft118">DWA-A 118 Entwurf 2021</option>
+        <option value="draft138">DWA-A 138 (2020)</option>
+      </select>
+    </div>
+  </div>
+  <!-- ── SUPABASE PANEL ── -->
+  <div class="sb-panel">
+    <div class="sp-title">☁️ Proyectos / Datenbank</div>
+    <div id="db-status"><span style="color:#F59E0B;">● Conectando…</span></div>
+    <select id="project-selector" onchange="loadProject(this.value)">
+      <option value="">— Seleccionar proyecto —</option>
+    </select>
+    <button class="sb-btn save" onclick="sbSaveCurrentCalc()">💾 Guardar cálculo</button>
+    <button class="sb-btn" onclick="sbNewProject()">＋ Nuevo proyecto</button>
+    <div id="calc-history"></div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div><h2 id="tt">Modul 1 — Entwurfsregen</h2>
+    <div style="font-size:9.5px;color:var(--g5);margin-top:1px;" id="tsub">DWA-A 118 · DWA-A 531 · KOSTRA-DWD 2020</div></div>
+    <span class="nb" id="tbadge">DWA-A 118/531</span>
+  </div>
+  <div id="draft-banner">⚠️ Norma en revisión (Entwurf) — resultados deben validarse con autoridad competente / Norm in Überarbeitung — Ergebnisse sind mit zuständiger Behörde abzustimmen</div>
+  <div id="content">
+    <div id="fp"></div>
+    <div id="rp"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONSTANTS / NORM REFERENCES (normReferences.ts equiv.)
+// ═══════════════════════════════════════════════════════
+const NORM_REFS={
+  MANNING_KST:       {code:'DWA-A 110',ed:'Nov. 2006',sec:'Abschnitt 5.1',tab:'Tabelle 1'},
+  V_MIN:             {code:'DWA-A 110',ed:'Nov. 2006',sec:'Abschnitt 5.5.1',note:'v_min = 0.60 m/s'},
+  V_MAX:             {code:'DWA-A 110',ed:'Nov. 2006',sec:'Abschnitt 5.5.2',note:'v_max = 6.0 m/s'},
+  H_D_STORM:         {code:'DWA-A 110',ed:'Nov. 2006',sec:'Abschnitt 5.4',note:'h/D_max = 0.70 (Regenwasser)'},
+  H_D_MIXED:         {code:'DWA-A 110',ed:'Nov. 2006',sec:'Abschnitt 5.4',note:'h/D_max = 0.50 (Mischwasser)'},
+  SHEAR_STRESS:      {code:'DWA-A 110',ed:'Nov. 2006',sec:'Abschnitt 5.5.1',note:'τ_min = 2 N/m² (Selbstreinigung)'},
+  RUNOFF_COEFF:      {code:'DWA-A 118',ed:'März 2006',sec:'Tabelle 2',note:'Abflussbeiwerte ψ nach Flächentyp'},
+  RATIONAL_METHOD:   {code:'DWA-A 118',ed:'März 2006',sec:'Gleichung (1)',note:'Q = ψ · i · A'},
+  KOSTRA:            {code:'KOSTRA-DWD 2020',ed:'2020',sec:'Datenbasis',note:'Regenintensitäten für Deutschland'},
+  HYDROGRAPH:        {code:'DWA-A 531',ed:'2012',sec:'Abschnitt 3',note:'Synthetisches Hydrogram'},
+  RETENTION_VOL:     {code:'DWA-A 117',ed:'2013',sec:'Abschnitt 4.2',eq:'Gleichung (2)',note:'V_R = (Q_zu-Q_ab)·Δt'},
+  WEIR_OVERFLOW:     {code:'DWA-A 166',ed:'2013',sec:'Abschnitt 5.3',eq:'Q_ü = μ·b·√(2g)·h^1.5'},
+  OVERFLOW_FREQ:     {code:'DWA-A 166',ed:'2013',sec:'Abschnitt 4.2.1',note:'n_ü ≤ 12/Jahr'},
+  SEDIMENT_EFF:      {code:'DWA-A 166',ed:'2013',sec:'Anhang A',note:'Wirkungsgrad η_AFS'},
+  INFILTRATION:      {code:'DWA-A 138',ed:'April 2005',sec:'Abschnitt 3.2',note:'f = k_f · A_s'},
+  GW_DISTANCE:       {code:'DWA-A 138',ed:'April 2005',sec:'Abschnitt 4.3',note:'Grundwasserabstand ≥ 1.0 m'},
+  ABWV:              {code:'AbwV',ed:'2004',sec:'Anhang 1',note:'Grenzwerte kommunales Abwasser'},
+  POLLUTANT_LOAD:    {code:'DWA-A 102-2',ed:'2020',sec:'Tabellen 1-4',note:'Jahresflächenlasten nach Flächentyp'},
+  FIRST_FLUSH:       {code:'DWA-A 102',ed:'2016',sec:'Tabelle 6',note:'First-Flush-Faktor ff = 2–5'},
+  MIXED_LOAD:        {code:'DWA-M 153',ed:'2007',sec:'Kapitel 4',note:'Vereinfachtes Verfahren Mischsystem'},
+  CMIX:              {code:'DWA-M 153',ed:'2007',sec:'Gleichung (3)',note:'C_mix = (Qs·Cs + Qr·Cr)/(Qs+Qr)'},
+};
+function normStr(k){const n=NORM_REFS[k];return n?`${n.code}, ${n.ed}${n.sec?', '+n.sec:''}${n.note?' — '+n.note:''}`:'—';}
+function normTag(k){const n=NORM_REFS[k];return n?`<span class="norm-tag">${n.code}${n.sec?', '+n.sec:''}</span>`:''; }
+
+// ERROR CODES
+const ERR={
+  'ERR-H01':{de:'Caudal imposible: Q > Q_voll para DN dado',en:'Impossible flow: Q > Q_full for given DN',ref:'DWA-A 110, Abschn. 5.4',fix_de:'Aumentar DN o reducir caudal',fix_en:'Increase DN or reduce flow'},
+  'ERR-H02':{de:'Pendiente insuficiente para autolimpieza: v < v_min',en:'Insufficient slope: v < v_min',ref:'DWA-A 110, Abschn. 5.5.1',fix_de:'Aumentar pendiente I',fix_en:'Increase slope I'},
+  'ERR-H03':{de:'Velocidad excesiva — riesgo de erosión: v > v_max',en:'Excessive velocity — erosion risk',ref:'DWA-A 110, Abschn. 5.5.2',fix_de:'Reducir pendiente o aumentar DN',fix_en:'Reduce slope or increase DN'},
+  'ERR-H04':{de:'Llenado superior al límite normativo: h/D > límite',en:'Fill ratio exceeds normative limit',ref:'DWA-A 110, Abschn. 5.4',fix_de:'Aumentar DN',fix_en:'Increase DN'},
+  'ERR-H05':{de:'Froude supercrítico — revisar transición hidráulica',en:'Supercritical Froude — check hydraulic jump',ref:'DWA-A 110, Abschn. 5.6',fix_de:'Verificar con simulación dinámica',fix_en:'Verify with dynamic simulation'},
+  'ERR-H06':{de:'No convergencia tras 200 iteraciones',en:'No convergence after 200 iterations',ref:'DWA-A 110',fix_de:'Revisar inputs',fix_en:'Check inputs'},
+  'WARN-H01':{de:'Resultado en zona límite — verificar con simulación dinámica',en:'Result near normative limit',ref:'DWA-A 110, Abschn. 5.4'},
+  'WARN-H02':{de:'Input fuera del rango de validez de la norma',en:'Input outside norm validity range',ref:'DWA-A 110'},
+};
+function errBlock(codes,lang){
+  return codes.map(c=>{
+    const e=ERR[c];if(!e)return '';
+    const isW=c.startsWith('WARN');
+    return `<div class="${isW?'warn-block':'err-block'}">
+      <span class="${isW?'wc':'ec'}">${c}</span>
+      <span style="margin-left:6px;">${e[lang]||e.de}</span>
+      <div style="font-size:9.5px;margin-top:3px;opacity:.75;">📖 ${e.ref}${e['fix_'+lang]?' — 🔧 '+e['fix_'+lang]:''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+// LANGUAGE
+// ═══════════════════════════════════════
+let LANG='de', AUDIT=false, NORM_VER='current';
+const TR={
+  de:{calc:'Berechnen',example:'Beispiel laden',inputs:'Eingaben',results:'Ergebnisse',
+      calcmemo:'Berechnungsprotokoll',exportpdf:'PDF-Bericht exportieren',pdfgen:'PDF wird erstellt…',pdfdone:'PDF gespeichert.',
+      projectname:'Projektname',engineer:'Ingenieur',
+      mod1:'Hydrologie',mod2:'Kollektoren',mod3:'Retention',mod4:'Versickerung',mod5:'Einleitung',
+      mod6:'Pluvialqualität',mod7:'Netzrückhalt',mod8:'Mischsystem',
+      auditmode:'Audit-Modus',normver:'Normversion:'},
+  en:{calc:'Calculate',example:'Load Example',inputs:'Inputs',results:'Results',
+      calcmemo:'Calculation Memo',exportpdf:'Export PDF Report',pdfgen:'Generating PDF…',pdfdone:'PDF saved.',
+      projectname:'Project Name',engineer:'Engineer',
+      mod1:'Hydrology',mod2:'Collectors',mod3:'Retention',mod4:'Infiltration',mod5:'Discharge',
+      mod6:'Stormwater Quality',mod7:'In-line Storage',mod8:'Combined Sewer',
+      auditmode:'Audit Mode',normver:'Norm version:'},
+};
+function t(k){return TR[LANG][k]||k;}
+function setLang(l){LANG=l;document.getElementById('bde').classList.toggle('active',l==='de');document.getElementById('ben').classList.toggle('active',l==='en');document.querySelectorAll('[data-de]').forEach(el=>el.textContent=el.getAttribute('data-'+l));document.getElementById('ls').textContent=l==='de'?'Hydraulische Berechnungen':'Hydraulic Calculations';document.getElementById('audit-lbl').textContent=t('auditmode');document.getElementById('nv-lbl').textContent=t('normver');buildNav();renderModule(CUR);}
+function toggleAudit(){AUDIT=!AUDIT;document.getElementById('audit-tog').classList.toggle('on',AUDIT);if(lastResult)renderModule(CUR);}
+function onNormVerChange(){NORM_VER=document.getElementById('norm-ver').value;const draft=NORM_VER.startsWith('draft');document.getElementById('draft-banner').style.display=draft?'block':'none';}
+
+// ═══════════════════════════════════════
+// KOSTRA DATA (15 regions, 8 durations)
+// ═══════════════════════════════════════
+const KOSTRA={
+  'Hamburg/Küste':{15:{1:65,2:84,5:113,10:137,20:165,50:204,100:234},30:{1:47,2:62,5:84,10:102,20:124,50:155,100:178},60:{1:33,2:44,5:61,10:75,20:92,50:116,100:135},120:{1:20,2:28,5:39,10:49,20:61,50:77,100:90},180:{1:15,2:21,5:30,10:38,20:47,50:60,100:70},360:{1:9,2:13,5:18,10:23,20:29,50:38,100:44},720:{1:5,2:8,5:11,10:14,20:18,50:24,100:28},1440:{1:3,2:4,5:6,10:8,20:11,50:14,100:17}},
+  'Niedersachsen-Nord':{15:{1:67,2:87,5:117,10:142,20:171,50:212,100:243},30:{1:49,2:64,5:87,10:106,20:129,50:161,100:185},60:{1:34,2:46,5:63,10:78,20:96,50:121,100:140},120:{1:21,2:29,5:41,10:51,20:63,50:80,100:93},180:{1:16,2:22,5:31,10:39,20:49,50:62,100:73},360:{1:9,2:13,5:19,10:24,20:30,50:39,100:46},720:{1:6,2:8,5:12,10:15,20:19,50:25,100:29},1440:{1:3,2:5,5:7,10:9,20:11,50:15,100:18}},
+  'Schleswig-Holstein':{15:{1:63,2:82,5:110,10:133,20:161,50:199,100:228},30:{1:46,2:60,5:82,10:100,20:121,50:151,100:174},60:{1:32,2:43,5:59,10:73,20:90,50:113,100:131},120:{1:20,2:27,5:38,10:48,20:59,50:75,100:88},180:{1:15,2:20,5:29,10:36,20:45,50:57,100:67},360:{1:9,2:12,5:17,10:22,20:28,50:36,100:42},720:{1:5,2:7,5:10,10:13,20:17,50:22,100:26},1440:{1:3,2:4,5:6,10:8,20:10,50:13,100:16}},
+  'NRW-West (Rheinland)':{15:{1:80,2:104,5:140,10:170,20:205,50:254,100:291},30:{1:59,2:77,5:105,10:128,20:155,50:193,100:222},60:{1:42,2:56,5:77,10:95,20:116,50:146,100:169},120:{1:27,2:37,5:52,10:64,20:79,50:100,100:116},180:{1:20,2:28,5:40,10:50,20:62,50:79,100:92},360:{1:12,2:17,5:25,10:31,20:39,50:50,100:59},720:{1:7,2:10,5:15,10:19,20:24,50:31,100:37},1440:{1:4,2:6,5:9,10:11,20:14,50:19,100:22}},
+  'NRW-Ost (Sauerland)':{15:{1:85,2:110,5:149,10:181,20:219,50:271,100:311},30:{1:63,2:82,5:112,10:137,20:166,50:207,100:238},60:{1:45,2:60,5:83,10:103,20:126,50:159,100:184},120:{1:29,2:40,5:56,10:70,20:87,50:110,100:128},180:{1:22,2:31,5:44,10:55,20:68,50:87,100:101},360:{1:13,2:19,5:27,10:34,20:43,50:55,100:64},720:{1:8,2:11,5:17,10:21,20:27,50:34,100:40},1440:{1:5,2:7,5:10,10:13,20:16,50:21,100:25}},
+  'Hessen-Mitte':{15:{1:77,2:99,5:134,10:163,20:197,50:244,100:280},30:{1:56,2:73,5:100,10:122,20:148,50:185,100:213},60:{1:40,2:53,5:73,10:91,20:111,50:140,100:162},120:{1:26,2:35,5:49,10:61,20:76,50:96,100:111},180:{1:19,2:27,5:38,10:47,20:59,50:75,100:87},360:{1:12,2:16,5:23,10:29,20:37,50:47,100:55},720:{1:7,2:10,5:14,10:18,20:23,50:30,100:35},1440:{1:4,2:6,5:8,10:11,20:14,50:18,100:21}},
+  'Rheinland-Pfalz':{15:{1:82,2:106,5:143,10:174,20:211,50:261,100:300},30:{1:60,2:79,5:107,10:131,20:159,50:199,100:229},60:{1:43,2:57,5:79,10:98,20:120,50:151,100:175},120:{1:27,2:38,5:53,10:66,20:82,50:104,100:120},180:{1:21,2:29,5:41,10:51,20:64,50:81,100:94},360:{1:12,2:17,5:25,10:31,20:39,50:50,100:59},720:{1:7,2:10,5:15,10:19,20:24,50:31,100:37},1440:{1:4,2:6,5:9,10:11,20:14,50:18,100:22}},
+  'Brandenburg/Berlin':{15:{1:68,2:88,5:119,10:144,20:174,50:216,100:247},30:{1:50,2:65,5:89,10:108,20:131,50:164,100:189},60:{1:35,2:47,5:65,10:80,20:99,50:125,100:144},120:{1:22,2:30,5:43,10:53,20:66,50:84,100:97},180:{1:17,2:23,5:33,10:41,20:52,50:66,100:77},360:{1:10,2:14,5:20,10:25,20:32,50:41,100:48},720:{1:6,2:8,5:12,10:15,20:20,50:26,100:30},1440:{1:3,2:5,5:7,10:9,20:12,50:15,100:18}},
+  'Sachsen':{15:{1:74,2:96,5:130,10:157,20:190,50:235,100:270},30:{1:54,2:71,5:97,10:118,20:143,50:179,100:206},60:{1:38,2:51,5:71,10:87,20:107,50:135,100:157},120:{1:24,2:33,5:47,10:58,20:72,50:92,100:107},180:{1:18,2:25,5:36,10:45,20:56,50:72,100:84},360:{1:11,2:15,5:22,10:27,20:34,50:44,100:52},720:{1:6,2:9,5:13,10:17,20:21,50:28,100:33},1440:{1:4,2:5,5:8,10:10,20:13,50:17,100:20}},
+  'Thüringen':{15:{1:76,2:98,5:133,10:161,20:194,50:241,100:276},30:{1:56,2:73,5:99,10:121,20:147,50:183,100:211},60:{1:39,2:52,5:72,10:89,20:110,50:138,100:160},120:{1:25,2:34,5:48,10:60,20:74,50:94,100:109},180:{1:19,2:26,5:37,10:46,20:57,50:73,100:85},360:{1:11,2:15,5:22,10:28,20:35,50:45,100:53},720:{1:7,2:9,5:13,10:17,20:21,50:28,100:33},1440:{1:4,2:5,5:8,10:10,20:13,50:17,100:20}},
+  'Bayern-Nord (Franken)':{15:{1:82,2:106,5:143,10:174,20:210,50:260,100:299},30:{1:60,2:79,5:107,10:130,20:158,50:197,100:227},60:{1:43,2:57,5:79,10:97,20:119,50:150,100:174},120:{1:27,2:37,5:53,10:66,20:81,50:103,100:119},180:{1:21,2:29,5:41,10:51,20:64,50:81,100:94},360:{1:12,2:17,5:25,10:31,20:39,50:50,100:58},720:{1:7,2:10,5:15,10:19,20:23,50:30,100:36},1440:{1:4,2:6,5:9,10:11,20:14,50:18,100:22}},
+  'Bayern-Süd (Alpenvorland)':{15:{1:92,2:119,5:160,10:195,20:236,50:292,100:336},30:{1:68,2:88,5:120,10:146,20:178,50:222,100:256},60:{1:48,2:64,5:88,10:109,20:134,50:168,100:195},120:{1:31,2:43,5:60,10:75,20:93,50:118,100:137},180:{1:24,2:33,5:47,10:59,20:73,50:93,100:108},360:{1:14,2:20,5:29,10:37,20:46,50:59,100:69},720:{1:9,2:12,5:18,10:23,20:28,50:37,100:43},1440:{1:5,2:7,5:11,10:13,20:17,50:22,100:26}},
+  'Baden-Württemberg-Nord':{15:{1:84,2:109,5:146,10:178,20:215,50:267,100:306},30:{1:62,2:81,5:110,10:134,20:163,50:203,100:234},60:{1:44,2:58,5:81,10:100,20:122,50:154,100:178},120:{1:28,2:39,5:54,10:68,20:84,50:106,100:123},180:{1:21,2:30,5:42,10:53,20:66,50:84,100:97},360:{1:13,2:18,5:26,10:32,20:40,50:52,100:60},720:{1:8,2:11,5:16,10:20,20:25,50:32,100:37},1440:{1:5,2:6,5:9,10:12,20:15,50:19,100:23}},
+  'BW-Süd (Schwarzwald)':{15:{1:90,2:116,5:157,10:190,20:230,50:285,100:328},30:{1:66,2:86,5:117,10:143,20:173,50:216,100:249},60:{1:47,2:63,5:86,10:107,20:131,50:165,100:191},120:{1:30,2:42,5:59,10:73,20:91,50:115,100:133},180:{1:23,2:32,5:46,10:57,20:71,50:91,100:105},360:{1:14,2:19,5:28,10:35,20:44,50:57,100:66},720:{1:8,2:12,5:17,10:21,20:27,50:35,100:41},1440:{1:5,2:7,5:10,10:13,20:16,50:21,100:25}},
+  'Saarland/Pfalz':{15:{1:83,2:107,5:145,10:176,20:213,50:263,100:302},30:{1:61,2:80,5:108,10:132,20:160,50:200,100:230},60:{1:43,2:57,5:79,10:98,20:120,50:151,100:175},120:{1:28,2:38,5:54,10:67,20:83,50:105,100:122},180:{1:21,2:29,5:42,10:52,20:65,50:83,100:96},360:{1:12,2:17,5:25,10:31,20:39,50:50,100:58},720:{1:7,2:10,5:15,10:19,20:24,50:30,100:36},1440:{1:4,2:6,5:9,10:11,20:14,50:18,100:22}},
+};
+const DURS=[15,30,60,120,180,360,720,1440],RPS=[1,2,5,10,20,50,100];
+function getKOSTRA(reg,dur,T){
+  const rd=KOSTRA[reg];if(!rd)return 80;
+  const ds=Object.keys(rd).map(Number).sort((a,b)=>a-b);
+  let d1=ds[0],d2=ds[ds.length-1];
+  for(let i=0;i<ds.length-1;i++){if(dur>=ds[i]&&dur<=ds[i+1]){d1=ds[i];d2=ds[i+1];break;}}
+  if(dur<=ds[0])d1=d2=ds[0]; if(dur>=ds[ds.length-1])d1=d2=ds[ds.length-1];
+  let t1=RPS[0],t2=RPS[RPS.length-1];
+  for(let i=0;i<RPS.length-1;i++){if(T>=RPS[i]&&T<=RPS[i+1]){t1=RPS[i];t2=RPS[i+1];break;}}
+  if(T<=RPS[0])t1=t2=RPS[0]; if(T>=RPS[RPS.length-1])t1=t2=RPS[RPS.length-1];
+  const fT=(t1===t2)?0:(T-t1)/(t2-t1),fD=(d1===d2)?0:(dur-d1)/(d2-d1);
+  const i11=rd[d1]?.[t1]||0,i12=rd[d1]?.[t2]||0,i21=rd[d2]?.[t1]||0,i22=rd[d2]?.[t2]||0;
+  return (i11+(i12-i11)*fT)+(i21+(i22-i21)*fT-(i11+(i12-i11)*fT))*fD;
+}
+
+const PSI={
+  'Dach_Metall':{psi:0.95,de:'Metalldach',en:'Metal roof'},
+  'Dach_Ziegel':{psi:0.90,de:'Ziegeldach',en:'Tile roof'},
+  'Dach_Gruen': {psi:0.35,de:'Extensives Gründach',en:'Green roof (ext.)'},
+  'Dach_Intensiv':{psi:0.50,de:'Intensives Gründach',en:'Green roof (int.)'},
+  'Asphalt':    {psi:0.90,de:'Asphalt/Beton',en:'Asphalt/Concrete'},
+  'Pflaster_d': {psi:0.75,de:'Pflaster (dicht)',en:'Paving (tight)'},
+  'Pflaster_f': {psi:0.50,de:'Pflaster (Fugen)',en:'Paving (jointed)'},
+  'Pflaster_p': {psi:0.25,de:'Porenpflaster',en:'Porous paving'},
+  'Kies':       {psi:0.30,de:'Kiespflaster',en:'Gravel surface'},
+  'Rasen_flach':{psi:0.15,de:'Rasen (<2%)',en:'Lawn (<2%)'},
+  'Rasen_mitte':{psi:0.25,de:'Rasen (2–7%)',en:'Lawn (2–7%)'},
+  'Rasen_steil':{psi:0.35,de:'Rasen (>7%)',en:'Lawn (>7%)'},
+  'Wald':       {psi:0.10,de:'Wald / Wiese',en:'Forest/Meadow'},
+  'Mischgebiet':{psi:0.45,de:'Mischgebiet (urban)',en:'Mixed urban'},
+};
+
+// ═══════════════════════════════════════
+// NUMERICAL SOLVER (Bloque B)
+// ═══════════════════════════════════════
+const G=9.81, NU=1e-6;
+function circularProfile(D,Q,kSt,I){
+  // Bisection for partial fill angle theta
+  const Qm3=Q/1000, If=I/1000;
+  const Afull=Math.PI*D*D/4, Pfull=Math.PI*D, Rhfull=D/4;
+  const vFull=kSt*Math.pow(Rhfull,2/3)*Math.pow(If,0.5);
+  const Qfull=vFull*Afull;
+  const errors=[],warns=[];
+  if(Qm3>Qfull){errors.push('ERR-H01');return {errors,warns,vFull:vFull,Qfull:Qfull*1000};}
+  // Bisection: find theta s.t. Q_calc(theta)=Qm3
+  let lo=0.001,hi=2*Math.PI-0.001,theta=Math.PI,iter=0;
+  while(iter<200){
+    theta=(lo+hi)/2;
+    const A=(D*D/8)*(theta-Math.sin(theta));
+    const P=D*theta/2; const Rh=A/P;
+    const v=kSt*Math.pow(Rh,2/3)*Math.pow(If,0.5);
+    const Qc=v*A;
+    if(Math.abs(Qc-Qm3)<1e-9){break;}
+    if(Qc<Qm3)lo=theta; else hi=theta;
+    iter++;
+  }
+  if(iter>=200)errors.push('ERR-H06');
+  const A=(D*D/8)*(theta-Math.sin(theta));
+  const P=D*theta/2; const Rh=A/P;
+  const h=D/2*(1-Math.cos(theta/2));
+  const hD=h/D;
+  const v=kSt*Math.pow(Rh,2/3)*Math.pow(If,0.5);
+  const T_surf=D*Math.sin(theta/2); // top width
+  const Fr=v/Math.pow(G*A/T_surf,0.5);
+  const Re=v*Rh/NU;
+  const tau=1000*G*Rh*If;
+  if(v<0.6)errors.push('ERR-H02');
+  if(v>6.0)errors.push('ERR-H03');
+  if(hD>0.70)errors.push('ERR-H04');
+  else if(hD>0.65)warns.push('WARN-H01');
+  if(Fr>1.0)errors.push('ERR-H05');
+  if(Re<2300)warns.push('WARN-H02');
+  return {h:Math.round(h*1000)/1000,hD:Math.round(hD*1000)/1000,v:Math.round(v*1000)/1000,
+          Fr:Math.round(Fr*1000)/1000,Re:Math.round(Re*0),tau:Math.round(tau*100)/100,
+          Rh:Math.round(Rh*10000)/10000,A:Math.round(A*10000)/10000,
+          vFull:Math.round(vFull*1000)/1000,Qfull:Math.round(Qfull*1000*100)/100,
+          iter,errors,warns};
+}
+
+// ═══════════════════════════════════════
+// DWA-A 102-2: POLLUTANT LOADS
+// ═══════════════════════════════════════
+// Annual surface loads [kg/(ha·a)] per surface class
+// Source: DWA-A 102-2 (2020), Tabellen 1-4
+const POLLUTANT_LOADS={
+  'Dach_Metall':   {klasse:'III',SS:60,COD:120,Zn:0.80,Cu:0.40,HC:0.10},
+  'Dach_Ziegel':   {klasse:'II', SS:40,COD:90, Zn:0.30,Cu:0.05,HC:0.05},
+  'Dach_Gruen':    {klasse:'I',  SS:20,COD:50, Zn:0.10,Cu:0.03,HC:0.02},
+  'Asphalt':       {klasse:'III',SS:120,COD:200,Zn:0.40,Cu:0.20,HC:2.50},
+  'Pflaster_d':    {klasse:'III',SS:110,COD:180,Zn:0.35,Cu:0.18,HC:2.00},
+  'Pflaster_f':    {klasse:'II', SS:80,COD:140,Zn:0.25,Cu:0.12,HC:1.50},
+  'Rasen_flach':   {klasse:'I',  SS:15,COD:30, Zn:0.05,Cu:0.02,HC:0.01},
+  'Wald':          {klasse:'I',  SS:10,COD:25, Zn:0.03,Cu:0.01,HC:0.01},
+  'Mischgebiet':   {klasse:'II', SS:70,COD:130,Zn:0.30,Cu:0.15,HC:1.20},
+  'Kies':          {klasse:'II', SS:50,COD:80, Zn:0.15,Cu:0.08,HC:0.50},
+};
+const KLASSE_COLOR={I:'#DCFCE7',II:'#FEF9C3',III:'#FEE2E2'};
+const KLASSE_TEXT={I:'#15803D',II:'#92400E',III:'#991B1B'};
+
+// ═══════════════════════════════════════
+// NAV BUILD
+// ═══════════════════════════════════════
+let CUR=1, lastResult=null, charts={};
+const NAV_ITEMS=[
+  {m:1,icon:'🌧️',sub:'Modul 1 · DWA-A 118/531',key:'mod1',badge:'DWA-A 118/531',norm:'DWA-A 118 · DWA-A 531 · KOSTRA-DWD 2020'},
+  {m:2,icon:'🔩',sub:'Modul 2 · DWA-A 110',key:'mod2',badge:'DWA-A 110',norm:'DWA-A 110 (Nov. 2006) · DIN EN 476'},
+  {m:3,icon:'🏞️',sub:'Modul 3 · DWA-A 117',key:'mod3',badge:'DWA-A 117',norm:'DWA-A 117 (2013)'},
+  {m:4,icon:'🌱',sub:'Modul 4 · DWA-A 138',key:'mod4',badge:'DWA-A 138',norm:'DWA-A 138 (2005) · DIN 18130'},
+  {m:5,icon:'🏭',sub:'Modul 5 · AbwV/WHG',key:'mod5',badge:'AbwV/WHG §57',norm:'AbwV (2004) · WHG §57 · WRRL'},
+  {m:6,icon:'🧪',sub:'Modul 6 · DWA-A 102-2',key:'mod6',badge:'DWA-A 102-2',norm:'DWA-A 102-2 (2020) · BWK M-3 · EN 858'},
+  {m:7,icon:'🚰',sub:'Modul 7 · DWA-A 166',key:'mod7',badge:'DWA-A 166',norm:'DWA-A 166 (2013) · DWA-M 178'},
+  {m:8,icon:'🔄',sub:'Modul 8 · DWA-M 153',key:'mod8',badge:'DWA-M 153',norm:'DWA-M 153 (2007) · WRRL'},
+];
+function buildNav(){
+  document.getElementById('nav').innerHTML=NAV_ITEMS.map(ni=>`
+    <div class="ni${CUR===ni.m?' active':''}" onclick="switchModule(${ni.m})">
+      <span class="ic">${ni.icon}</span>
+      <div><div class="mod">${ni.sub}</div><div class="nm">${t(ni.key)}</div></div>
+    </div>`).join('');
+}
+function switchModule(m){CUR=m;lastResult=null;buildNav();renderModule(m);}
+function renderModule(m){
+  const ni=NAV_ITEMS.find(x=>x.m===m);
+  document.getElementById('tt').textContent=`Modul ${m} — ${t(ni.key)}`;
+  document.getElementById('tsub').textContent=ni.norm;
+  document.getElementById('tbadge').textContent=ni.badge;
+  if(m===1)renderMod1();
+  else if(m===2)renderMod2();
+  else if(m===6)renderMod6();
+  else if(m===7)renderMod7();
+  else if(m===8)renderMod8();
+  else renderModSimple(m);
+}
+
+// ════════════════════════════════
+// SHARED FORM HEADER (proj/eng)
+// ════════════════════════════════
+function projFields(pv,ev){return `
+  <div class="field"><label>${t('projectname')}</label><input type="text" id="f-proj" value="${pv||'Projekt-01'}"/></div>
+  <div class="field"><label>${t('engineer')}</label><input type="text" id="f-eng" value="${ev||'Dipl.-Ing. Müller'}"/></div>`;}
+function pdfBtn(){return `<button class="btn-pdf" id="pdf-btn" onclick="exportPDF()" disabled>📄 ${t('exportpdf')}</button><div id="pdf-st"></div>`;}
+function enablePDF(){const b=document.getElementById('pdf-btn');if(b)b.disabled=false;}
+
+// ════════════════════════════════
+// MODULE 1 — HYDROLOGY
+// ════════════════════════════════
+function renderMod1(){
+  document.getElementById('fp').innerHTML=`
+    <div class="sec">${t('inputs')}</div>
+    ${projFields()}
+    <div class="field"><label>Fläche A <span class="nr">(DWA-A 118, §4)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f-area" value="5.0" min="0.01" step="0.1"/></div><div class="unit">ha</div></div></div>
+    <div class="field"><label>Oberflächentyp <span class="nr">(DWA-A 118, Tab.2)</span></label>
+      <select id="f-surf">${Object.entries(PSI).map(([k,v])=>`<option value="${k}">${v[LANG]} (ψ=${v.psi})</option>`).join('')}</select></div>
+    <div class="field"><label>Regendauer <span class="nr">(DWA-A 531, §3)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f-dur" value="30" min="5" max="1440" step="5"/></div><div class="unit">min</div></div></div>
+    <div class="field"><label>KOSTRA-Region <span class="nr">(KOSTRA-DWD 2020)</span></label>
+      <select id="f-region">${Object.keys(KOSTRA).map(r=>`<option value="${r}">${r}</option>`).join('')}</select></div>
+    <div class="field"><label>Wiederkehrzeit T</label>
+      <select id="f-ret">${RPS.map(rp=>`<option value="${rp}"${rp===10?' selected':''}>${rp} Jahre (T=${rp}a)</option>`).join('')}</select></div>
+    <button class="btn-p" onclick="runMod1()">▶ ${t('calc')}</button>
+    <button class="btn-o" onclick="loadEx1()">📋 ${t('example')}</button>
+    ${pdfBtn()}`;
+  document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">📊 ${t('results')}</div><div class="cbd"><div class="empty"><div style="font-size:36px">🌧️</div><p>${LANG==='de'?'Berechnen klicken':'Click Calculate'}</p></div></div></div>`;
+}
+function loadEx1(){
+  document.getElementById('f-area').value='8.5';document.getElementById('f-dur').value='30';
+  document.getElementById('f-region').value='Bayern-Süd (Alpenvorland)';document.getElementById('f-ret').value='10';
+  const s=document.getElementById('f-surf');for(let i=0;i<s.options.length;i++){if(s.options[i].value==='Asphalt'){s.selectedIndex=i;break;}}
+  runMod1();
+}
+function runMod1(){
+  const area=parseFloat(document.getElementById('f-area').value)||1;
+  const surfType=document.getElementById('f-surf').value;
+  const duration=parseFloat(document.getElementById('f-dur').value)||30;
+  const region=document.getElementById('f-region').value;
+  const returnPeriod=parseInt(document.getElementById('f-ret').value)||10;
+  const psiData=PSI[surfType];const psi=psiData.psi;
+  const i=getKOSTRA(region,duration,returnPeriod);
+  const Q=Math.round(psi*i*area*100)/100;
+  const V=Math.round(Q*duration*60/1000*100)/100;
+  const idfFull={};DURS.forEach(d=>{idfFull[d]={};RPS.forEach(rp=>{idfFull[d][rp]=getKOSTRA(region,d,rp);});});
+  const hydrograph=[];for(let s=0;s<=24;s++){const tm=s*duration*2/24;let q=tm<=duration?Q*(tm/duration):Q*(1-(tm-duration)/(duration*0.5));hydrograph.push({t:Math.round(tm*10)/10,q:Math.max(0,Math.round(q*10)/10)});}
+  lastResult={mod:1,Q,V,i:Math.round(i*100)/100,psi,psiData,idfFull,hydrograph,inputs:{area,surfType,duration,region,returnPeriod,project:document.getElementById('f-proj').value,engineer:document.getElementById('f-eng').value}};
+  renderMod1Results(lastResult);enablePDF();
+}
+function renderMod1Results(r){
+  const {Q,V,i,psi,psiData,idfFull,hydrograph,inputs}=r;
+  const rp=document.getElementById('rp');
+  const dOk=inputs.duration>=5&&inputs.duration<=1440;
+  let auditHtml='';
+  if(AUDIT){auditHtml=`<div class="card"><div class="chd">🔬 Audit-Modus — ${t('calcmemo')}</div><div class="cbd">
+    <div class="audit-block"><div class="at">Schritt 1 — Regenintensität i ${normTag('KOSTRA')}</div>
+      <div>Fórmula simbólica: <span class="formula">i = f(Region, t, T)</span></div>
+      <div>KOSTRA-DWD 2020 · Region: ${inputs.region} · t=${inputs.duration}min · T=${inputs.returnPeriod}a</div>
+      <div>→ <span class="formula">i = ${i.toFixed(1)} L/(s·ha)</span></div>
+      <div style="font-size:9px;margin-top:2px;opacity:.7;">${normStr('KOSTRA')}</div></div>
+    <div class="audit-block"><div class="at">Schritt 2 — Abflussbeiwert ψ ${normTag('RUNOFF_COEFF')}</div>
+      <div>Oberfläche: ${psiData[LANG]} → <span class="formula">ψ = ${psi.toFixed(2)}</span></div>
+      <div style="font-size:9px;margin-top:2px;opacity:.7;">${normStr('RUNOFF_COEFF')}</div></div>
+    <div class="audit-block"><div class="at">Schritt 3 — Spitzenabfluss Q ${normTag('RATIONAL_METHOD')}</div>
+      <div>Symbolisch: <span class="formula">Q = ψ · i · A</span></div>
+      <div>Numerisch: <span class="formula">Q = ${psi} × ${i.toFixed(1)} × ${inputs.area}</span></div>
+      <div>→ <span class="formula">Q = <b>${Q.toFixed(2)} L/s</b></span></div>
+      <div>Verif. Q > 0: <span style="color:green">✅ Normkonform</span></div>
+      <div style="font-size:9px;margin-top:2px;opacity:.7;">${normStr('RATIONAL_METHOD')}</div></div>
+    <div class="audit-block"><div class="at">Schritt 4 — Abflussvolumen V</div>
+      <div>Symbolisch: <span class="formula">V = Q · t · 60 / 1000</span></div>
+      <div>Numerisch: <span class="formula">V = ${Q.toFixed(2)} × ${inputs.duration} × 60 / 1000 = <b>${V.toFixed(2)} m³</b></span></div></div>
+  </div></div>`;}
+  rp.innerHTML=`
+    <div class="card"><div class="chd">📊 ${t('results')} — T=${inputs.returnPeriod}a · ${inputs.region}</div><div class="cbd">
+      <div class="kg">
+        <div class="kp"><div class="kv">${Q.toFixed(1)}</div><div class="ku">L/s</div><div class="kl">Q_spitze</div></div>
+        <div class="kp"><div class="kv">${V.toFixed(1)}</div><div class="ku">m³</div><div class="kl">Volumen</div></div>
+        <div class="kp"><div class="kv">${psi.toFixed(2)}</div><div class="ku">—</div><div class="kl">ψ</div></div>
+      </div>
+      <table class="rt" style="margin-top:7px;"><thead><tr><th>Parameter</th><th>Wert</th><th>Unit</th><th>Status</th></tr></thead><tbody>
+        <tr><td>i (KOSTRA)</td><td><b>${i.toFixed(1)}</b></td><td>L/(s·ha)</td><td><span class="badge bok">✅ KOSTRA-DWD 2020</span></td></tr>
+        <tr><td>ψ</td><td><b>${psi.toFixed(2)}</b></td><td>—</td><td><span class="badge bok">✅ DWA-A 118 Tab.2</span></td></tr>
+        <tr><td>Q</td><td><b>${Q.toFixed(2)}</b></td><td>L/s</td><td><span class="badge bok">✅ Berechnet</span></td></tr>
+        <tr><td>V</td><td><b>${V.toFixed(2)}</b></td><td>m³</td><td><span class="badge bok">✅</span></td></tr>
+        <tr><td>t</td><td><b>${inputs.duration}</b></td><td>min</td><td><span class="badge ${dOk?'bok':'bwarn'}">${dOk?'✅ Gültig':'⚠️ Grenzwert'}</span></td></tr>
+      </tbody></table></div></div>
+    ${auditHtml}
+    <div class="card"><div class="chd">📈 Hydrogram (DWA-A 531)</div><div class="cbd"><div class="chart-wrap"><canvas id="ch-hy"></canvas></div></div></div>
+    <div class="card"><div class="chd">📋 IDF-Tabelle KOSTRA-DWD 2020 — ${inputs.region}</div><div class="cbd"><div class="scrollable">
+      <table class="idf-tbl"><thead><tr><th>t[min]</th>${RPS.map(rp=>`<th>T=${rp}a</th>`).join('')}</tr></thead><tbody>
+        ${DURS.map(d=>`<tr><td>${d}</td>${RPS.map(rp=>{const v=idfFull[d][rp];const hl=(d===inputs.duration&&rp===inputs.returnPeriod)?'background:#FFF3CD;font-weight:800;':'';return `<td style="${hl}">${v?v.toFixed(0):'—'}</td>`;}).join('')}</tr>`).join('')}
+      </tbody></table>
+      <p style="font-size:9px;color:var(--g5);margin-top:4px;">Werte in L/(s·ha) · Markiert = aktueller Berechnungswert</p>
+    </div></div></div>
+    <div class="card"><div class="chd">📉 IDF-Kurven</div><div class="cbd"><div class="chart-wrap"><canvas id="ch-idf"></canvas></div></div></div>`;
+  setTimeout(()=>{
+    if(charts.hy)charts.hy.destroy();
+    charts.hy=new Chart(document.getElementById('ch-hy').getContext('2d'),{type:'line',data:{labels:hydrograph.map(p=>p.t),datasets:[{label:`Q [L/s] T=${inputs.returnPeriod}a`,data:hydrograph.map(p=>p.q),borderColor:'#004B87',fill:true,backgroundColor:'rgba(0,75,135,.1)',tension:.4,pointRadius:2,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:9}}}},scales:{x:{title:{display:true,text:'t [min]',font:{size:9}},ticks:{font:{size:8}}},y:{title:{display:true,text:'Q [L/s]',font:{size:9}},ticks:{font:{size:8}},beginAtZero:true}}}});
+    if(charts.idf)charts.idf.destroy();
+    const cols=['#003366','#004B87','#0066B3','#3B82F6','#60A5FA','#93C5FD','#BFDBFE'];
+    charts.idf=new Chart(document.getElementById('ch-idf').getContext('2d'),{type:'line',data:{labels:DURS,datasets:RPS.map((rp,i)=>({label:`T=${rp}a`,data:DURS.map(d=>idfFull[d][rp]),borderColor:cols[i],fill:false,tension:.3,pointRadius:2,borderWidth:i===0?2.5:1.5,borderDash:i===0?[]:[4,3]}))},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{font:{size:8},boxWidth:14}}},scales:{x:{title:{display:true,text:'t [min]',font:{size:9}},ticks:{font:{size:8}}},y:{title:{display:true,text:'i [L/(s·ha)]',font:{size:9}},ticks:{font:{size:8}},beginAtZero:true}}}});
+  },50);
+}
+
+// ════════════════════════════════
+// MODULE 2 — COLLECTORS (full solver)
+// ════════════════════════════════
+function renderMod2(){
+  document.getElementById('fp').innerHTML=`
+    <div class="sec">${t('inputs')}</div>
+    ${projFields()}
+    <div class="field"><label>Zufluss Q <span class="nr">(DWA-A 110)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f2q" value="50" min="0.1" step="1"/></div><div class="unit">L/s</div></div></div>
+    <div class="field"><label>Gefälle I <span class="nr">(DWA-A 110, §5.3)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f2I" value="2.0" min="0.01" step="0.1"/></div><div class="unit">‰</div></div></div>
+    <div class="field"><label>Nenndurchmesser DN <span class="nr">(DIN EN 476)</span></label>
+      <select id="f2dn"><option value="200">DN 200</option><option value="250">DN 250</option><option value="300" selected>DN 300</option><option value="400">DN 400</option><option value="500">DN 500</option><option value="600">DN 600</option><option value="800">DN 800</option><option value="1000">DN 1000</option><option value="1200">DN 1200</option></select></div>
+    <div class="field"><label>Manning-Strickler k_St <span class="nr">(DWA-A 110, Tab.1)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f2kst" value="85" min="40" max="120" step="1"/></div><div class="unit">m¹/³/s</div></div></div>
+    <div class="field"><label>Kanaltyp</label>
+      <select id="f2type"><option value="storm">Regenwasser (h/D≤0.70)</option><option value="mixed">Mischwasser (h/D≤0.50)</option></select></div>
+    <button class="btn-p" onclick="runMod2()">▶ ${t('calc')}</button>
+    <button class="btn-o" onclick="loadEx2()">📋 ${t('example')}</button>
+    ${pdfBtn()}`;
+  document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">📊 ${t('results')}</div><div class="cbd"><div class="empty"><div style="font-size:36px">🔩</div><p>${LANG==='de'?'Berechnen klicken':'Click Calculate'}</p></div></div></div>`;
+}
+function loadEx2(){document.getElementById('f2q').value='85';document.getElementById('f2I').value='3.0';document.getElementById('f2dn').value='300';document.getElementById('f2kst').value='85';runMod2();}
+function runMod2(){
+  const Q=parseFloat(document.getElementById('f2q').value)||50;
+  const I=parseFloat(document.getElementById('f2I').value)||2.0;
+  const DN=parseInt(document.getElementById('f2dn').value)||300;
+  const kSt=parseFloat(document.getElementById('f2kst').value)||85;
+  const type=document.getElementById('f2type').value;
+  const hDlim=type==='storm'?0.70:0.50;
+  const D=DN/1000;
+  const res=circularProfile(D,Q,kSt,I);
+  lastResult={mod:2,res,inputs:{Q,I,DN,kSt,type,hDlim,project:document.getElementById('f-proj').value,engineer:document.getElementById('f-eng').value}};
+  renderMod2Results(lastResult);enablePDF();
+}
+function renderMod2Results({res,inputs}){
+  const rp=document.getElementById('rp');
+  if(res.errors&&res.errors.includes('ERR-H01')){
+    rp.innerHTML=`<div class="card"><div class="chd">🔩 Modul 2 — Kollektoren</div><div class="cbd">
+      ${errBlock(['ERR-H01'],LANG)}
+      <p style="font-size:11px;margin-top:6px;">Q_voll = ${res.Qfull?res.Qfull.toFixed(1):'—'} L/s für DN ${inputs.DN}</p>
+    </div></div>`;return;
+  }
+  const hDok=res.hD<=inputs.hDlim, vMinOk=res.v>=0.6, vMaxOk=res.v<=6.0, frOk=res.Fr<1.0, reOk=res.Re>2300, tauOk=res.tau>=2.0;
+  const allErr=[...res.errors,...res.warns];
+  let auditHtml='';
+  if(AUDIT){auditHtml=`<div class="card"><div class="chd">🔬 Audit-Modus</div><div class="cbd">
+    <div class="audit-block"><div class="at">Schritt 1 — Manning-Strickler (Vollfüllung) ${normTag('MANNING_KST')}</div>
+      <div>Symbolisch: <span class="formula">v = k_St · R_h^(2/3) · I^(1/2)</span></div>
+      <div>R_h = D/4 = ${(inputs.DN/4000).toFixed(4)} m, I = ${inputs.I/1000} m/m</div>
+      <div>→ <span class="formula">v_voll = ${res.vFull} m/s</span></div></div>
+    <div class="audit-block"><div class="at">Schritt 2 — Bisektionsverfahren Teilfüllung (ε ≤ 10⁻⁹ m³/s)</div>
+      <div>Ziel: Q_calc(θ) = ${inputs.Q} L/s = ${(inputs.Q/1000).toFixed(4)} m³/s</div>
+      <div>Konvergenz nach ${res.iter} Iterationen</div>
+      <div>→ <span class="formula">θ → h/D = ${res.hD}</span></div></div>
+    <div class="audit-block"><div class="at">Schritt 3 — Hydraulische Kennzahlen</div>
+      <div>Fr = v/√(g·A/T) = <span class="formula">${res.Fr}</span> ${res.Fr<0.8?'→ unterkritisch ✅':res.Fr<1.0?'→ nahe kritisch ⚠️':'→ überkritisch ❌'}</div>
+      <div>Re = v·R_h/ν = <span class="formula">${res.Re}</span> ${res.Re>2300?'→ turbulent ✅':'→ laminar ❌'}</div>
+      <div>τ = ρ·g·R_h·I = <span class="formula">${res.tau} N/m²</span> ${res.tau>=2.0?'→ Selbstreinigung ✅':'→ unzureichend ❌'}</div></div>
+    <div class="audit-block"><div class="at">Schritt 4 — Normative Verifikation</div>
+      <div>v_min = 0.6 m/s ${normTag('V_MIN')}: ${res.v} ${vMinOk?'≥ 0.6 ✅':'< 0.6 ❌'}</div>
+      <div>v_max = 6.0 m/s ${normTag('V_MAX')}: ${res.v} ${vMaxOk?'≤ 6.0 ✅':'> 6.0 ❌'}</div>
+      <div>h/D ≤ ${inputs.hDlim} ${normTag(inputs.type==='storm'?'H_D_STORM':'H_D_MIXED')}: ${res.hD} ${hDok?'✅':'❌'}</div>
+      <div>τ ≥ 2 N/m² ${normTag('SHEAR_STRESS')}: ${res.tau} ${tauOk?'✅':'❌'}</div>
+    </div>
+  </div></div>`;}
+  rp.innerHTML=`
+    <div class="card"><div class="chd">🔩 Modul 2 — Manning-Strickler · DN ${inputs.DN} · DWA-A 110</div><div class="cbd">
+      ${allErr.length?errBlock(allErr,LANG):''}
+      <div class="kg">
+        <div class="kp"><div class="kv">${res.v}</div><div class="ku">m/s</div><div class="kl">v Teilf.</div></div>
+        <div class="kp"><div class="kv">${res.hD}</div><div class="ku">—</div><div class="kl">h/D</div></div>
+        <div class="kp"><div class="kv">${res.Fr}</div><div class="ku">—</div><div class="kl">Fr</div></div>
+      </div>
+      <table class="rt" style="margin-top:7px;"><thead><tr><th>Prüfung</th><th>Wert</th><th>Grenzwert</th><th>Status</th></tr></thead><tbody>
+        <tr><td>v ≥ v_min</td><td>${res.v} m/s</td><td>0.60 m/s</td><td><span class="badge ${vMinOk?'bok':'berr'}">${vMinOk?'✅ DWA-A 110':'❌ ERR-H02'}</span></td></tr>
+        <tr><td>v ≤ v_max</td><td>${res.v} m/s</td><td>6.00 m/s</td><td><span class="badge ${vMaxOk?'bok':'berr'}">${vMaxOk?'✅':'❌ ERR-H03'}</span></td></tr>
+        <tr><td>h/D ≤ ${inputs.hDlim}</td><td>${res.hD}</td><td>${inputs.hDlim}</td><td><span class="badge ${hDok?'bok':'berr'}">${hDok?'✅ DWA-A 110':'❌ ERR-H04'}</span></td></tr>
+        <tr><td>Fr</td><td>${res.Fr}</td><td>< 1.0</td><td><span class="badge ${frOk?'bok':'bwarn'}">${frOk?'✅ unterkritisch':res.Fr<1.0?'⚠️ nahe kritisch':'❌ ERR-H05'}</span></td></tr>
+        <tr><td>Re</td><td>${res.Re}</td><td>> 2300</td><td><span class="badge ${reOk?'bok':'bwarn'}">${reOk?'✅ turbulent':'⚠️ WARN-H02'}</span></td></tr>
+        <tr><td>τ</td><td>${res.tau} N/m²</td><td>≥ 2.0</td><td><span class="badge ${tauOk?'bok':'berr'}">${tauOk?'✅ Selbstreinigung':'❌ unzureichend'}</span></td></tr>
+        <tr><td>Q_voll</td><td>${res.Qfull} L/s</td><td>—</td><td><span class="badge bok">✅ Vollfüllung</span></td></tr>
+      </tbody></table>
+    </div></div>
+    ${auditHtml}`;
+}
+
+// ════════════════════════════════
+// MODULE 6 — STORMWATER QUALITY
+// ════════════════════════════════
+function renderMod6(){
+  document.getElementById('fp').innerHTML=`
+    <div class="sec">${t('inputs')}</div>
+    ${projFields()}
+    <div class="field"><label>Flächentyp <span class="nr">(DWA-A 102-2, Tab.1-4)</span></label>
+      <select id="f6surf">${Object.entries(POLLUTANT_LOADS).map(([k,v])=>`<option value="${k}">${PSI[k]?PSI[k][LANG]:k} (Kl.${v.klasse})</option>`).join('')}</select></div>
+    <div class="field"><label>Fläche A_E <span class="nr">(befestigte Fläche)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f6area" value="2.5" min="0.01" step="0.1"/></div><div class="unit">ha</div></div></div>
+    <div class="field"><label>Jahresabfluss V_J <span class="nr">(DWA-A 102-2)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f6vj" value="3500" min="100" step="100"/></div><div class="unit">m³/a</div></div></div>
+    <div class="field"><label>First-Flush Volumen <span class="nr">(DWA-A 102, Tab.6)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f6ff" value="3" min="1" max="10" step="0.5"/></div><div class="unit">mm</div></div></div>
+    <div class="field"><label>Empfängerempfindlichkeit <span class="nr">(WRRL)</span></label>
+      <select id="f6sens"><option value="low">Niedrig (Gew. Kl. gut)</option><option value="medium" selected>Mittel (Gew. Kl. mäßig)</option><option value="high">Hoch (sensibles Gewässer)</option></select></div>
+    <button class="btn-p" onclick="runMod6()">▶ ${t('calc')}</button>
+    <button class="btn-o" onclick="runMod6()">📋 ${t('example')}</button>
+    ${pdfBtn()}`;
+  document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">🧪 ${t('results')}</div><div class="cbd"><div class="empty"><div style="font-size:36px">🧪</div><p>${LANG==='de'?'Berechnen klicken':'Click Calculate'}</p></div></div></div>`;
+}
+function runMod6(){
+  const surf=document.getElementById('f6surf').value;
+  const area=parseFloat(document.getElementById('f6area').value)||2.5;
+  const Vj=parseFloat(document.getElementById('f6vj').value)||3500;
+  const ffMM=parseFloat(document.getElementById('f6ff').value)||3;
+  const sens=document.getElementById('f6sens').value;
+  const loads=POLLUTANT_LOADS[surf]||POLLUTANT_LOADS['Asphalt'];
+  // Annual loads kg/a = load [kg/(ha·a)] * area [ha]
+  const SS_a=loads.SS*area, COD_a=loads.COD*area;
+  const Zn_a=loads.Zn*area, Cu_a=loads.Cu*area, HC_a=loads.HC*area;
+  // First Flush volume m³
+  const ffVol=area*10000*ffMM/1000; // m³
+  // FF factor (DWA-A 102 Tab.6)
+  const ff=loads.klasse==='III'?4.5:loads.klasse==='II'?3.0:2.0;
+  // FF concentration factor × mean concentration
+  const meanC_SS=SS_a*1000/Vj; // g/m³ = mg/L annual mean
+  const ffC_SS=meanC_SS*ff;
+  // Treatment requirement matrix
+  const needTreat=(loads.klasse==='III'&&sens!=='low')||(loads.klasse==='II'&&sens==='high');
+  const treatRec=needTreat?(loads.HC>1.0?'Leichtflüssigkeitsabscheider (EN 858) + Retentionsbodenfilter (DWA-M 178)':'Retentionsbodenfilter (DWA-M 178)'):'Keine Behandlung erforderlich';
+  lastResult={mod:6,inputs:{surf,area,Vj,ffMM,sens,project:document.getElementById('f-proj').value,engineer:document.getElementById('f-eng').value},loads,SS_a,COD_a,Zn_a,Cu_a,HC_a,ffVol,ff,ffC_SS,meanC_SS,needTreat,treatRec};
+  renderMod6Results(lastResult);enablePDF();
+}
+function renderMod6Results(r){
+  const {loads,SS_a,COD_a,Zn_a,Cu_a,HC_a,ffVol,ff,ffC_SS,meanC_SS,needTreat,treatRec,inputs}=r;
+  const kl=loads.klasse;
+  const klColor=KLASSE_COLOR[kl], klText=KLASSE_TEXT[kl];
+  let auditHtml='';
+  if(AUDIT){auditHtml=`<div class="card"><div class="chd">🔬 Audit-Modus (DWA-A 102-2, 2020)</div><div class="cbd">
+    <div class="audit-block"><div class="at">Schritt 1 — Flächenklassifikation ${normTag('POLLUTANT_LOAD')}</div>
+      <div>Fläche: ${PSI[inputs.surf]?PSI[inputs.surf][LANG]:inputs.surf} → Verschmutzungsgrad Klasse <b>${kl}</b></div>
+      <div style="font-size:9px;opacity:.7;">${normStr('POLLUTANT_LOAD')}</div></div>
+    <div class="audit-block"><div class="at">Schritt 2 — Jahresflächenlasten L_j = l_spez · A_E</div>
+      <div>SS: <span class="formula">${loads.SS} × ${inputs.area} = ${SS_a.toFixed(1)} kg/a</span></div>
+      <div>COD: <span class="formula">${loads.COD} × ${inputs.area} = ${COD_a.toFixed(1)} kg/a</span></div>
+      <div>Zn: <span class="formula">${loads.Zn} × ${inputs.area} = ${Zn_a.toFixed(3)} kg/a</span></div>
+      <div>Cu: <span class="formula">${loads.Cu} × ${inputs.area} = ${Cu_a.toFixed(3)} kg/a</span></div></div>
+    <div class="audit-block"><div class="at">Schritt 3 — First Flush ${normTag('FIRST_FLUSH')}</div>
+      <div>V_ff = A_E · h_ff = ${inputs.area}·10000·${inputs.ffMM}/1000 = <span class="formula">${ffVol.toFixed(1)} m³</span></div>
+      <div>Faktor ff = ${ff} (Klasse ${kl})</div>
+      <div>C_SS,mean = ${meanC_SS.toFixed(1)} mg/L → C_SS,FF = <span class="formula">${ffC_SS.toFixed(1)} mg/L</span></div></div>
+  </div></div>`;}
+  document.getElementById('rp').innerHTML=`
+    <div class="card"><div class="chd">🧪 Modul 6 — Pluvialqualität · DWA-A 102-2 (2020)</div><div class="cbd">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
+        <div style="background:${klColor};color:${klText};padding:8px 14px;border-radius:5px;font-weight:800;font-size:14px;">Klasse ${kl}</div>
+        <div style="font-size:11px;color:var(--g7);">${kl==='I'?'Geringes Verschmutzungspotenzial':kl==='II'?'Mittleres Verschmutzungspotenzial':'Hohes Verschmutzungspotenzial'}<br/><span style="font-size:9.5px;color:var(--g5);">DWA-A 102-2 (2020), Tabellen 1-4</span></div>
+      </div>
+      <div class="kg">
+        <div class="kp"><div class="kv">${SS_a.toFixed(0)}</div><div class="ku">kg/a</div><div class="kl">SS-Jahresfracht</div></div>
+        <div class="kp"><div class="kv">${ffVol.toFixed(0)}</div><div class="ku">m³</div><div class="kl">V_FirstFlush</div></div>
+        <div class="kp"><div class="kv">${ffC_SS.toFixed(0)}</div><div class="ku">mg/L</div><div class="kl">C_SS (FF)</div></div>
+      </div>
+      <table class="rt" style="margin-top:8px;"><thead><tr><th>Schadstoff</th><th>Spez. Last</th><th>Jahresfracht</th><th>Einheit</th></tr></thead><tbody>
+        <tr><td>SS (Abfiltrierb. Stoffe)</td><td>${loads.SS}</td><td><b>${SS_a.toFixed(1)}</b></td><td>kg/a</td></tr>
+        <tr><td>COD (CSB)</td><td>${loads.COD}</td><td><b>${COD_a.toFixed(1)}</b></td><td>kg/a</td></tr>
+        <tr><td>Zink (Zn)</td><td>${loads.Zn}</td><td><b>${Zn_a.toFixed(3)}</b></td><td>kg/a</td></tr>
+        <tr><td>Kupfer (Cu)</td><td>${loads.Cu}</td><td><b>${Cu_a.toFixed(3)}</b></td><td>kg/a</td></tr>
+        <tr><td>Kohlenwasserstoff (HC)</td><td>${loads.HC}</td><td><b>${HC_a.toFixed(3)}</b></td><td>kg/a</td></tr>
+      </tbody></table>
+    </div></div>
+    ${auditHtml}
+    <div class="card"><div class="chd">🔍 Behandlungsempfehlung (WRRL / DWA-A 102-2)</div><div class="cbd">
+      <div style="background:${needTreat?'#FEF2F2':'#DCFCE7'};border-radius:4px;padding:10px;margin-bottom:8px;">
+        <div style="font-weight:700;font-size:12px;color:${needTreat?'#991B1B':'#15803D'};">${needTreat?'⚠️ Behandlung erforderlich':'✅ Keine Behandlung erforderlich'}</div>
+        <div style="font-size:11px;margin-top:4px;">${treatRec}</div>
+      </div>
+      <table class="rt"><thead><tr><th>Kriterium</th><th>Wert</th><th>Status</th></tr></thead><tbody>
+        <tr><td>Verschmutzungsklasse</td><td>Klasse ${kl}</td><td><span class="badge" style="background:${klColor};color:${klText};">${kl==='I'?'✅ Gering':kl==='II'?'⚠️ Mittel':'❌ Hoch'}</span></td></tr>
+        <tr><td>Empfängerempfindlichkeit</td><td>${inputs.sens==='low'?'Niedrig':inputs.sens==='medium'?'Mittel':'Hoch'}</td><td><span class="badge ${inputs.sens==='low'?'bok':inputs.sens==='medium'?'bwarn':'berr'}">${inputs.sens==='low'?'✅':inputs.sens==='medium'?'⚠️':'❌'}</span></td></tr>
+        <tr><td>First-Flush C_SS</td><td>${ffC_SS.toFixed(0)} mg/L</td><td><span class="badge ${ffC_SS<100?'bok':'bwarn'}">${ffC_SS<100?'✅ < 100 mg/L':'⚠️ erhöht'}</span></td></tr>
+      </tbody></table>
+      <p style="font-size:9px;color:var(--g5);margin-top:5px;">Referenz: DWA-A 102-2 (2020), Tabellen 1-4 · BWK M-3 · EN 858</p>
+    </div></div>`;
+}
+
+// ════════════════════════════════
+// MODULE 7 — IN-LINE STORAGE
+// ════════════════════════════════
+function renderMod7(){
+  document.getElementById('fp').innerHTML=`
+    <div class="sec">${t('inputs')}</div>
+    ${projFields()}
+    <div class="field"><label>Beckentyp <span class="nr">(DWA-A 166, Tab.1)</span></label>
+      <select id="f7type"><option value="RUE">Regenüberlaufbecken (RÜB)</option><option value="RKB">Regenklärbecken (RKB)</option><option value="SK">Stauraumkanal (SK)</option></select></div>
+    <div class="field"><label>Einzugsgebiet A_E <span class="nr"></span></label>
+      <div class="fr"><div class="field"><input type="number" id="f7ae" value="15" min="0.1" step="0.1"/></div><div class="unit">ha</div></div></div>
+    <div class="field"><label>Zulaufspitze Q_zu <span class="nr"></span></label>
+      <div class="fr"><div class="field"><input type="number" id="f7qin" value="250" min="1" step="1"/></div><div class="unit">L/s</div></div></div>
+    <div class="field"><label>Abgabe Q_ab <span class="nr">(gedrosselter Abfluss)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f7qab" value="50" min="1" step="1"/></div><div class="unit">L/s</div></div></div>
+    <div class="field"><label>Überfallbreite b <span class="nr">(DWA-A 166, §5.3)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f7b" value="2.5" min="0.1" step="0.1"/></div><div class="unit">m</div></div></div>
+    <div class="field"><label>Überfalllhöhe h_ü <span class="nr"></span></label>
+      <div class="fr"><div class="field"><input type="number" id="f7h" value="0.20" min="0.01" step="0.01"/></div><div class="unit">m</div></div></div>
+    <div class="field"><label>Ereignisdauer t <span class="nr"></span></label>
+      <div class="fr"><div class="field"><input type="number" id="f7dur" value="60" min="5" step="5"/></div><div class="unit">min</div></div></div>
+    <button class="btn-p" onclick="runMod7()">▶ ${t('calc')}</button>
+    ${pdfBtn()}`;
+  document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">🚰 ${t('results')}</div><div class="cbd"><div class="empty"><div style="font-size:36px">🚰</div></div></div></div>`;
+}
+function runMod7(){
+  const type=document.getElementById('f7type').value;
+  const ae=parseFloat(document.getElementById('f7ae').value)||15;
+  const Qin=parseFloat(document.getElementById('f7qin').value)||250;
+  const Qab=parseFloat(document.getElementById('f7qab').value)||50;
+  const b=parseFloat(document.getElementById('f7b').value)||2.5;
+  const h=parseFloat(document.getElementById('f7h').value)||0.20;
+  const dur=parseFloat(document.getElementById('f7dur').value)||60;
+  // Weir overflow Q_ü = μ·b·√(2g)·h^1.5 (DWA-A 166, Abschn. 5.3)
+  const mu=0.60; // sharp-crested weir
+  const Que=mu*b*Math.pow(2*G,0.5)*Math.pow(h,1.5)*1000; // L/s
+  // Retention volume
+  const VR=(Qin-Qab)*dur*60/1000; // m³
+  // Specific volume
+  const Vspez=VR/ae;
+  // Efficiency AFS (DWA-A 166 Anhang A simplified)
+  const LB_ratio=Vspez>5?4.5:Vspez>2?3.0:2.0;
+  const etaAFS=Math.min(0.95,0.40+0.08*Vspez);
+  // Activation frequency check: simplified n_ü estimation
+  const nuest=Math.round(Qin/Qab*1.5);
+  const nuOk=nuest<=12;
+  lastResult={mod:7,inputs:{type,ae,Qin,Qab,b,h,dur,project:document.getElementById('f-proj').value,engineer:document.getElementById('f-eng').value},Que,VR,Vspez,LB_ratio,etaAFS,nuest,nuOk,mu};
+  renderMod7Results(lastResult);enablePDF();
+}
+function renderMod7Results(r){
+  const {Que,VR,Vspez,LB_ratio,etaAFS,nuest,nuOk,mu,inputs}=r;
+  let auditHtml='';
+  if(AUDIT){auditHtml=`<div class="card"><div class="chd">🔬 Audit-Modus (DWA-A 166, 2013)</div><div class="cbd">
+    <div class="audit-block"><div class="at">Schritt 1 — Überfallwehr Q_ü ${normTag('WEIR_OVERFLOW')}</div>
+      <div>Symbolisch: <span class="formula">Q_ü = μ · b · √(2g) · h^1.5</span></div>
+      <div>Numerisch: <span class="formula">Q_ü = ${mu} · ${inputs.b} · √(${(2*G).toFixed(2)}) · ${inputs.h}^1.5 = ${Que.toFixed(1)} L/s</span></div></div>
+    <div class="audit-block"><div class="at">Schritt 2 — Retentionsvolumen ${normTag('RETENTION_VOL')}</div>
+      <div>Symbolisch: <span class="formula">V_R = (Q_zu − Q_ab) · Δt</span></div>
+      <div>Numerisch: <span class="formula">V_R = (${inputs.Qin}−${inputs.Qab}) · ${inputs.dur}·60/1000 = ${VR.toFixed(1)} m³</span></div></div>
+    <div class="audit-block"><div class="at">Schritt 3 — Aktivierungsfrequenz ${normTag('OVERFLOW_FREQ')}</div>
+      <div>n_ü ≤ 12/Jahr (DWA-A 166, §4.2.1)</div>
+      <div>Geschätzt: n_ü ≈ ${nuest}/Jahr ${nuOk?'✅':'❌'}</div></div>
+    <div class="audit-block"><div class="at">Schritt 4 — Wirkungsgrad η_AFS ${normTag('SEDIMENT_EFF')}</div>
+      <div>Vereinfacht: <span class="formula">η_AFS = min(0.95, 0.40 + 0.08·V_spez)</span></div>
+      <div>→ <span class="formula">η_AFS = ${(etaAFS*100).toFixed(0)}%</span></div></div>
+  </div></div>`;}
+  document.getElementById('rp').innerHTML=`
+    <div class="card"><div class="chd">🚰 Modul 7 — ${inputs.type} · DWA-A 166 (2013)</div><div class="cbd">
+      <div class="kg">
+        <div class="kp"><div class="kv">${VR.toFixed(0)}</div><div class="ku">m³</div><div class="kl">V_Retention</div></div>
+        <div class="kp"><div class="kv">${Vspez.toFixed(1)}</div><div class="ku">m³/ha</div><div class="kl">V_spez</div></div>
+        <div class="kp"><div class="kv">${(etaAFS*100).toFixed(0)}</div><div class="ku">%</div><div class="kl">η_AFS</div></div>
+      </div>
+      <table class="rt" style="margin-top:7px;"><thead><tr><th>Parameter</th><th>Wert</th><th>Grenzwert</th><th>Status</th></tr></thead><tbody>
+        <tr><td>Q_überfallwehr</td><td>${Que.toFixed(1)} L/s</td><td>—</td><td><span class="badge bok">✅ DWA-A 166 §5.3</span></td></tr>
+        <tr><td>Retentionsvolumen V_R</td><td>${VR.toFixed(1)} m³</td><td>>0</td><td><span class="badge bok">✅ DWA-A 117</span></td></tr>
+        <tr><td>Aktivierungsfrequenz n_ü</td><td>≈${nuest}/a</td><td>≤12/a</td><td><span class="badge ${nuOk?'bok':'berr'}">${nuOk?'✅ DWA-A 166':'❌ Überschreitung'}</span></td></tr>
+        <tr><td>L/B Verhältnis</td><td>≥${LB_ratio.toFixed(1)}</td><td>≥3.0</td><td><span class="badge ${LB_ratio>=3?'bok':'bwarn'}">${LB_ratio>=3?'✅ DWA-A 166':'⚠️ prüfen'}</span></td></tr>
+        <tr><td>η_AFS Wirkungsgrad</td><td>${(etaAFS*100).toFixed(0)}%</td><td>>40%</td><td><span class="badge ${etaAFS>0.4?'bok':'bwarn'}">${etaAFS>0.4?'✅ Anhang A':'⚠️'}</span></td></tr>
+      </tbody></table>
+    </div></div>
+    ${auditHtml}`;
+}
+
+// ════════════════════════════════
+// MODULE 8 — COMBINED SEWER
+// ════════════════════════════════
+function renderMod8(){
+  document.getElementById('fp').innerHTML=`
+    <div class="sec">${t('inputs')}</div>
+    ${projFields()}
+    <div class="field"><label>Schmutzwasserabfluss Q_s <span class="nr">(Trockenwetter)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f8qs" value="30" min="0.1" step="1"/></div><div class="unit">L/s</div></div></div>
+    <div class="field"><label>Regenwasseranteil Q_r <span class="nr"></span></label>
+      <div class="fr"><div class="field"><input type="number" id="f8qr" value="120" min="0.1" step="1"/></div><div class="unit">L/s</div></div></div>
+    <div class="field"><label>CSB Schmutzwasser C_s <span class="nr">(DWA-M 153)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f8cs" value="400" min="10" step="10"/></div><div class="unit">mg/L</div></div></div>
+    <div class="field"><label>CSB Regenwasser C_r <span class="nr">(DWA-M 153)</span></label>
+      <div class="fr"><div class="field"><input type="number" id="f8cr" value="80" min="1" step="5"/></div><div class="unit">mg/L</div></div></div>
+    <div class="field"><label>NH₄-N C_s <span class="nr"></span></label>
+      <div class="fr"><div class="field"><input type="number" id="f8nh4s" value="35" min="1" step="1"/></div><div class="unit">mg/L</div></div></div>
+    <div class="field"><label>AFS Schmutzwasser C_s <span class="nr"></span></label>
+      <div class="fr"><div class="field"><input type="number" id="f8afss" value="200" min="10" step="10"/></div><div class="unit">mg/L</div></div></div>
+    <div class="field"><label>Jahresabfluss V_J</label>
+      <div class="fr"><div class="field"><input type="number" id="f8vj" value="150000" min="1000" step="1000"/></div><div class="unit">m³/a</div></div></div>
+    <button class="btn-p" onclick="runMod8()">▶ ${t('calc')}</button>
+    ${pdfBtn()}`;
+  document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">🔄 ${t('results')}</div><div class="cbd"><div class="empty"><div style="font-size:36px">🔄</div></div></div></div>`;
+}
+function runMod8(){
+  const Qs=parseFloat(document.getElementById('f8qs').value)||30;
+  const Qr=parseFloat(document.getElementById('f8qr').value)||120;
+  const Cs=parseFloat(document.getElementById('f8cs').value)||400;
+  const Cr=parseFloat(document.getElementById('f8cr').value)||80;
+  const nh4s=parseFloat(document.getElementById('f8nh4s').value)||35;
+  const afss=parseFloat(document.getElementById('f8afss').value)||200;
+  const Vj=parseFloat(document.getElementById('f8vj').value)||150000;
+  // C_mix = (Qs*Cs + Qr*Cr) / (Qs+Qr)  DWA-M 153, Gl.(3)
+  const Cmix_COD=(Qs*Cs+Qr*Cr)/(Qs+Qr);
+  const Cmix_nh4=(Qs*nh4s+Qr*0)/(Qs+Qr); // rain assumed ~0 NH4
+  const afsr=120; // typical rain AFS mg/L
+  const Cmix_afs=(Qs*afss+Qr*afsr)/(Qs+Qr);
+  // Annual loads kg/a
+  const L_COD=Cmix_COD*Vj/1e6*1000;
+  const L_nh4=Cmix_nh4*Vj/1e6*1000;
+  const L_afs=Cmix_afs*Vj/1e6*1000;
+  // DWA-M 153 assessment thresholds (Tabelle 4)
+  const thres_COD=100, thres_nh4=10, thres_afs=100;
+  const needRKB=Cmix_COD>thres_COD||Cmix_nh4>thres_nh4||Cmix_afs>thres_afs;
+  lastResult={mod:8,inputs:{Qs,Qr,Cs,Cr,nh4s,afss,Vj,project:document.getElementById('f-proj').value,engineer:document.getElementById('f-eng').value},Cmix_COD,Cmix_nh4,Cmix_afs,L_COD,L_nh4,L_afs,needRKB};
+  renderMod8Results(lastResult);enablePDF();
+}
+function renderMod8Results(r){
+  const {Cmix_COD,Cmix_nh4,Cmix_afs,L_COD,L_nh4,L_afs,needRKB,inputs}=r;
+  let auditHtml='';
+  if(AUDIT){auditHtml=`<div class="card"><div class="chd">🔬 Audit-Modus (DWA-M 153, 2007)</div><div class="cbd">
+    <div class="audit-block"><div class="at">Schritt 1 — Mischwasserkonzentration C_mix ${normTag('CMIX')}</div>
+      <div>Symbolisch: <span class="formula">C_mix = (Q_s · C_s + Q_r · C_r) / (Q_s + Q_r)</span></div>
+      <div>COD: <span class="formula">C_mix = (${inputs.Qs}·${inputs.Cs} + ${inputs.Qr}·${inputs.Cr}) / ${inputs.Qs+inputs.Qr} = ${Cmix_COD.toFixed(1)} mg/L</span></div></div>
+    <div class="audit-block"><div class="at">Schritt 2 — Jahresfrachten L = C_mix · V_J / 10⁶ · 10³ [kg/a]</div>
+      <div>COD: <span class="formula">${Cmix_COD.toFixed(1)} · ${inputs.Vj}/10⁶ · 10³ = ${L_COD.toFixed(0)} kg/a</span></div>
+      <div>NH₄-N: <span class="formula">${Cmix_nh4.toFixed(1)} · ${inputs.Vj}/10⁶ · 10³ = ${L_nh4.toFixed(0)} kg/a</span></div></div>
+    <div class="audit-block"><div class="at">Schritt 3 — Bewertung ${normTag('MIXED_LOAD')}</div>
+      <div>C_mix,COD = ${Cmix_COD.toFixed(1)} mg/L ${Cmix_COD<=100?'≤ 100 ✅':'> 100 ❌'}</div>
+      <div>C_mix,NH₄-N = ${Cmix_nh4.toFixed(1)} mg/L ${Cmix_nh4<=10?'≤ 10 ✅':'> 10 ❌'}</div>
+      <div>→ ${needRKB?'Regenklärbecken erforderlich ❌':'Regenrückhaltebecken ausreichend ✅'}</div></div>
+  </div></div>`;}
+  document.getElementById('rp').innerHTML=`
+    <div class="card"><div class="chd">🔄 Modul 8 — Mischsystem · DWA-M 153 (2007)</div><div class="cbd">
+      <div class="kg">
+        <div class="kp"><div class="kv">${Cmix_COD.toFixed(0)}</div><div class="ku">mg/L</div><div class="kl">C_mix COD</div></div>
+        <div class="kp"><div class="kv">${Cmix_nh4.toFixed(1)}</div><div class="ku">mg/L</div><div class="kl">C_mix NH₄-N</div></div>
+        <div class="kp"><div class="kv">${Cmix_afs.toFixed(0)}</div><div class="ku">mg/L</div><div class="kl">C_mix AFS</div></div>
+      </div>
+      <table class="rt" style="margin-top:7px;"><thead><tr><th>Parameter</th><th>C_mix</th><th>Schwellwert (M153 Tab.4)</th><th>Status</th></tr></thead><tbody>
+        <tr><td>CSB/COD</td><td>${Cmix_COD.toFixed(1)} mg/L</td><td>100 mg/L</td><td><span class="badge ${Cmix_COD<=100?'bok':'berr'}">${Cmix_COD<=100?'✅ DWA-M 153':'❌ Überschreitung'}</span></td></tr>
+        <tr><td>NH₄-N</td><td>${Cmix_nh4.toFixed(1)} mg/L</td><td>10 mg/L</td><td><span class="badge ${Cmix_nh4<=10?'bok':'berr'}">${Cmix_nh4<=10?'✅':'❌ Überschreitung'}</span></td></tr>
+        <tr><td>AFS</td><td>${Cmix_afs.toFixed(0)} mg/L</td><td>100 mg/L</td><td><span class="badge ${Cmix_afs<=100?'bok':'berr'}">${Cmix_afs<=100?'✅':'❌'}</span></td></tr>
+      </tbody></table>
+      <div style="margin-top:10px;background:${needRKB?'#FEF2F2':'#DCFCE7'};border-radius:4px;padding:8px;">
+        <b style="color:${needRKB?'#991B1B':'#15803D'};">${needRKB?'❌ Regenklärbecken (RKB) erforderlich':'✅ Regenrückhaltebecken (RRB) ausreichend'}</b>
+        <div style="font-size:10px;margin-top:3px;opacity:.75;">DWA-M 153 (2007), Kapitel 4 — Vereinfachtes Verfahren</div>
+      </div>
+      <table class="rt" style="margin-top:8px;"><thead><tr><th>Jahresfracht</th><th>kg/a</th><th>Norm</th></tr></thead><tbody>
+        <tr><td>CSB/COD</td><td><b>${L_COD.toFixed(0)}</b></td><td>DWA-M 153</td></tr>
+        <tr><td>NH₄-N</td><td><b>${L_nh4.toFixed(0)}</b></td><td>DWA-M 153</td></tr>
+        <tr><td>AFS</td><td><b>${L_afs.toFixed(0)}</b></td><td>DWA-M 153</td></tr>
+      </tbody></table>
+    </div></div>
+    ${auditHtml}`;
+}
+
+// ════════════════════════════════
+// SIMPLE MODULES (3,4,5)
+// ════════════════════════════════
+function renderModSimple(m){
+  const cfg={
+    3:{icon:'🏞️',fields:[{id:'f3qi',l:'Q_zu',u:'L/s',v:120},{id:'f3qo',l:'Q_ab',u:'L/s',v:30},{id:'f3dur',l:'Dauer t',u:'min',v:60}],run:()=>{
+      const Qi=parseFloat(document.getElementById('f3qi').value)||120,Qo=parseFloat(document.getElementById('f3qo').value)||30,dur=parseFloat(document.getElementById('f3dur').value)||60;
+      const VR=(Qi-Qo)*dur*60/1000;lastResult={mod:3,VR,Qi,Qo,dur};
+      let audit=AUDIT?`<div class="card"><div class="chd">🔬 Audit</div><div class="cbd"><div class="audit-block"><div class="at">V_R = (Q_zu − Q_ab) · Δt ${normTag('RETENTION_VOL')}</div><div class="formula">V_R = (${Qi}−${Qo}) · ${dur}·60/1000 = <b>${VR.toFixed(2)} m³</b></div><div style="font-size:9px;opacity:.7;">${normStr('RETENTION_VOL')}</div></div></div></div>`:'';
+      document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">🏞️ Modul 3 — DWA-A 117</div><div class="cbd"><div class="kg"><div class="kp"><div class="kv">${VR.toFixed(1)}</div><div class="ku">m³</div><div class="kl">V_R</div></div><div class="kp"><div class="kv">${Qo}</div><div class="ku">L/s</div><div class="kl">Q_ab</div></div><div class="kp"><div class="kv">${((Qo/Qi)*100).toFixed(0)}</div><div class="ku">%</div><div class="kl">Abgabe</div></div></div></div></div>${audit}`;enablePDF();
+    }},
+    4:{icon:'🌱',fields:[{id:'f4ae',l:'Fläche A_E',u:'ha',v:1.5},{id:'f4kf',l:'k_f',u:'m/s',v:0.00005},{id:'f4gw',l:'GW-Tiefe',u:'m',v:2.5}],run:()=>{
+      const ae=parseFloat(document.getElementById('f4ae').value)||1.5,kf=parseFloat(document.getElementById('f4kf').value)||5e-5,gw=parseFloat(document.getElementById('f4gw').value)||2.5;
+      const As=ae*10000*0.3,f=kf*As*1000;lastResult={mod:4,ae,kf,gw,f};
+      let audit=AUDIT?`<div class="card"><div class="chd">🔬 Audit</div><div class="cbd"><div class="audit-block"><div class="at">f = k_f · A_s ${normTag('INFILTRATION')}</div><div class="formula">f = ${kf.toExponential(1)} · ${As.toFixed(0)} = ${f.toFixed(1)} L/s</div><div style="font-size:9px;opacity:.7;">${normStr('INFILTRATION')}</div></div><div class="audit-block"><div class="at">GW-Abstand ${normTag('GW_DISTANCE')}</div><div>${gw.toFixed(1)} m ${gw>=1?'≥ 1.0 m ✅':'< 1.0 m ❌'}</div><div style="font-size:9px;opacity:.7;">${normStr('GW_DISTANCE')}</div></div></div></div>`:'';
+      document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">🌱 Modul 4 — DWA-A 138</div><div class="cbd"><div class="kg"><div class="kp"><div class="kv">${f.toFixed(1)}</div><div class="ku">L/s</div><div class="kl">Versickerung</div></div><div class="kp"><div class="kv">${(kf*1e5).toFixed(1)}·10⁻⁵</div><div class="ku">m/s</div><div class="kl">k_f</div></div><div class="kp"><div class="kv">${gw.toFixed(1)}</div><div class="ku">m</div><div class="kl">GW-Tiefe</div></div></div><table class="rt" style="margin-top:7px;"><thead><tr><th>Prüfung</th><th>Wert</th><th>Grenzwert</th><th>Status</th></tr></thead><tbody><tr><td>GW-Abstand</td><td>${gw.toFixed(1)} m</td><td>≥ 1.0 m</td><td><span class="badge ${gw>=1?'bok':'berr'}">${gw>=1?'✅ DWA-A 138':'❌'}</span></td></tr><tr><td>k_f Eignung</td><td>${kf.toExponential(1)}</td><td>10⁻⁶–10⁻³</td><td><span class="badge ${kf>=1e-6&&kf<=1e-3?'bok':'bwarn'}">${kf>=1e-6&&kf<=1e-3?'✅ DIN 18130':'⚠️'}</span></td></tr></tbody></table></div></div>${audit}`;enablePDF();
+    }},
+    5:{icon:'🏭',fields:[{id:'f5q',l:'Q Einleitung',u:'m³/d',v:500},{id:'f5csb',l:'CSB',u:'mg/L',v:90},{id:'f5nh4',l:'NH₄-N',u:'mg/L',v:8},{id:'f5p',l:'P_ges',u:'mg/L',v:1.5}],run:()=>{
+      const Q=parseFloat(document.getElementById('f5q').value)||500,csb=parseFloat(document.getElementById('f5csb').value)||90,nh4=parseFloat(document.getElementById('f5nh4').value)||8,p=parseFloat(document.getElementById('f5p').value)||1.5;
+      lastResult={mod:5,Q,csb,nh4,p};
+      const Lcsb=Q*csb/1000,Lnh4=Q*nh4/1000,Lp=Q*p/1000;
+      let audit=AUDIT?`<div class="card"><div class="chd">🔬 Audit</div><div class="cbd"><div class="audit-block"><div class="at">Jahresfracht L = Q · C ${normTag('POLLUTANT_LOAD')}</div><div class="formula">L_CSB = ${Q}·${csb}/1000 = ${Lcsb.toFixed(1)} kg/d</div><div style="font-size:9px;opacity:.7;">${normStr('ABWV')}</div></div></div></div>`:'';
+      document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">🏭 Modul 5 — AbwV/WHG §57</div><div class="cbd"><div class="kg"><div class="kp"><div class="kv">${Lcsb.toFixed(1)}</div><div class="ku">kg/d</div><div class="kl">CSB</div></div><div class="kp"><div class="kv">${Lnh4.toFixed(1)}</div><div class="ku">kg/d</div><div class="kl">NH₄-N</div></div><div class="kp"><div class="kv">${Lp.toFixed(2)}</div><div class="ku">kg/d</div><div class="kl">P_ges</div></div></div><table class="rt" style="margin-top:7px;"><thead><tr><th>Parameter</th><th>Einleitung</th><th>AbwV-Grenzwert</th><th>Status</th></tr></thead><tbody><tr><td>CSB</td><td>${csb} mg/L</td><td>75 mg/L</td><td><span class="badge ${csb<=75?'bok':'berr'}">${csb<=75?'✅':'❌'}</span></td></tr><tr><td>NH₄-N</td><td>${nh4} mg/L</td><td>10 mg/L</td><td><span class="badge ${nh4<=10?'bok':'berr'}">${nh4<=10?'✅':'❌'}</span></td></tr><tr><td>P_ges</td><td>${p} mg/L</td><td>2.0 mg/L</td><td><span class="badge ${p<=2?'bok':'berr'}">${p<=2?'✅':'❌'}</span></td></tr></tbody></table></div></div>${audit}`;enablePDF();
+    }},
+  };
+  const c=cfg[m];
+  document.getElementById('fp').innerHTML=`<div class="sec">${t('inputs')}</div>${projFields()}
+    ${c.fields.map(f=>`<div class="field"><label>${f.l}</label><div class="fr"><div class="field"><input type="number" id="${f.id}" value="${f.v}" step="any"/></div><div class="unit">${f.u}</div></div></div>`).join('')}
+    <button class="btn-p" onclick="modRun()">▶ ${t('calc')}</button>${pdfBtn()}`;
+  document.getElementById('rp').innerHTML=`<div class="card"><div class="chd">${c.icon} ${t('results')}</div><div class="cbd"><div class="empty"><div style="font-size:36px">${c.icon}</div></div></div></div>`;
+  window.modRun=c.run;
+}
+
+// ════════════════════════════════
+// PDF EXPORT
+// ════════════════════════════════
+async function exportPDF(){
+  if(!lastResult)return;
+  const btn=document.getElementById('pdf-btn'),st=document.getElementById('pdf-st');
+  btn.disabled=true;st.textContent=t('pdfgen');
+  try{
+    const {jsPDF}=window.jspdf;
+    const doc=new jsPDF({unit:'mm',format:'a4'});
+    const W=210,M=16,CW=W-2*M;
+    const dwa=[0,75,135],dwad=[0,51,102],gr=[244,245,247],dk=[17,24,39],mid=[107,114,128];
+    let y=0;
+    const proj=lastResult.inputs?.project||'Projekt',eng=lastResult.inputs?.engineer||'—';
+    const modNames={1:'Hydrologie — Entwurfsregen',2:'Kollektoren — Manning-Strickler',
+      3:'Retention — Laminierung',4:'Versickerung — SuDS',5:'Einleitung — Emissäre',
+      6:'Pluvialqualität — DWA-A 102-2',7:'Netzrückhalt — DWA-A 166',8:'Mischsystem — DWA-M 153'};
+    // COVER
+    doc.setFillColor(...dwa);doc.rect(0,0,210,55,'F');
+    doc.setFillColor(...dwad);doc.rect(0,53,210,4,'F');
+    doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(20);
+    doc.text('DWA Hydraulik-Rechner v2',M,24);
+    doc.setFontSize(11);doc.setFont('helvetica','normal');
+    doc.text('Technischer Berechnungsbericht · Technical Calculation Report',M,34);
+    doc.setFontSize(9);doc.text('DWA-A 110 · 117 · 118 · 138 · 102-2 · 166 · DWA-M 153 · KOSTRA-DWD 2020',M,44);
+    y=66;
+    doc.setTextColor(...dk);doc.setFont('helvetica','bold');doc.setFontSize(12);
+    doc.text('Projektinformationen',M,y);y+=7;
+    [[`${t('projectname')}`,proj],[`${t('engineer')}`,eng],['Datum / Date',new Date().toLocaleDateString('de-DE')],
+     ['Modul / Module',`Modul ${lastResult.mod} — ${modNames[lastResult.mod]||''}`],
+     ['Normversion / Norm version',NORM_VER==='draft118'?'DWA-A 118 Entwurf 2021 ⚠️':NORM_VER==='draft138'?'DWA-A 138 (2020)':'DWA aktuell (Standard)']
+    ].forEach(([k,v])=>{
+      doc.setFillColor(...gr);doc.rect(M,y-4,CW,7,'F');
+      doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...mid);doc.text(k,M+2,y);
+      doc.setFont('helvetica','normal');doc.setTextColor(...dk);doc.text(String(v),M+62,y);y+=8;
+    });
+    y+=4;doc.setDrawColor(...dwa);doc.setLineWidth(0.4);doc.line(M,y,W-M,y);y+=8;
+    // Module results section
+    doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(...dwa);
+    doc.text(`Modul ${lastResult.mod} — ${modNames[lastResult.mod]||''}`,M,y);y+=8;
+    const mod=lastResult.mod;
+    if(mod===1){
+      const {Q,V,i,psi,psiData,inputs}=lastResult;
+      const rows=[['Regenintensität i',`${i.toFixed(1)} L/(s·ha)`,'KOSTRA-DWD 2020'],
+        ['Abflussbeiwert ψ',psi.toFixed(2),'DWA-A 118, Tab.2'],
+        ['Spitzenabfluss Q',`${Q.toFixed(2)} L/s`,'DWA-A 118, Gl.(1)'],
+        ['Abflussvolumen V',`${V.toFixed(2)} m³`,'DWA-A 118'],
+        ['Fläche A',`${inputs.area} ha`,'—'],['Regendauer t',`${inputs.duration} min`,'—'],
+        ['Wiederkehrzeit T',`${inputs.returnPeriod} Jahre`,'—'],['Region',inputs.region,'KOSTRA-DWD 2020']];
+      pdfTable(doc,rows,['Parameter','Wert','Normreferenz'],[65,50,65],M,y,CW);y+=rows.length*7+14;
+      y+=4;doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...dwa);doc.text('Berechnungsprotokoll',M,y);y+=7;
+      const steps=[{t:'Schritt 1 — i (KOSTRA-DWD 2020)',b:`Region: ${inputs.region} · t=${inputs.duration}min · T=${inputs.returnPeriod}a`,f:`i = ${i.toFixed(1)} L/(s·ha)`},
+        {t:'Schritt 2 — ψ (DWA-A 118, Tabelle 2)',b:`Oberfläche: ${psiData[LANG]}`,f:`ψ = ${psi.toFixed(2)}`},
+        {t:'Schritt 3 — Q (DWA-A 118, Gleichung 1)',b:'Q = ψ · i · A',f:`Q = ${psi}×${i.toFixed(1)}×${inputs.area} = ${Q.toFixed(2)} L/s`},
+        {t:'Schritt 4 — V',b:'V = Q · t · 60 / 1000',f:`V = ${Q.toFixed(2)}×${inputs.duration}×60/1000 = ${V.toFixed(2)} m³`}];
+      steps.forEach(s=>{if(y>255){doc.addPage();y=20;}pdfStep(doc,s,M,y,CW,dwa,dk);y+=26;});
+    } else if(mod===2){
+      const {res,inputs}=lastResult;
+      const rows=[['Q diseño',`${inputs.Q} L/s`,'—'],['Gefälle I',`${inputs.I} ‰`,'—'],
+        ['DN',`${inputs.DN} mm`,'DIN EN 476'],['k_St',`${inputs.kSt} m^(1/3)/s`,'DWA-A 110, Tab.1'],
+        ['v (Teilf.)',`${res.v} m/s`,'DWA-A 110 §5.5'],['h/D',`${res.hD}`,'DWA-A 110 §5.4'],
+        ['Froude Fr',`${res.Fr}`,'DWA-A 110 §5.6'],['Reynolds Re',`${res.Re}`,'—'],
+        ['Schubspannung τ',`${res.tau} N/m²`,'DWA-A 110 §5.5.1'],
+        ['Q_voll',`${res.Qfull} L/s`,'—'],['Bisektions-Iter.',`${res.iter}`,'—']];
+      pdfTable(doc,rows,['Parameter','Wert','Normreferenz'],[65,50,65],M,y,CW);y+=rows.length*7+8;
+    } else if(mod===6){
+      const {loads,SS_a,COD_a,Zn_a,Cu_a,HC_a,ffVol,ff,ffC_SS,needTreat,treatRec,inputs}=lastResult;
+      const rows=[['Flächenklasse (DWA-A 102-2)',`Klasse ${loads.klasse}`,'Tab. 1-4'],
+        ['SS Jahresfracht',`${SS_a.toFixed(1)} kg/a`,'DWA-A 102-2'],
+        ['COD Jahresfracht',`${COD_a.toFixed(1)} kg/a`,'DWA-A 102-2'],
+        ['Zn Jahresfracht',`${Zn_a.toFixed(3)} kg/a`,'DWA-A 102-2'],
+        ['Cu Jahresfracht',`${Cu_a.toFixed(3)} kg/a`,'DWA-A 102-2'],
+        ['HC Jahresfracht',`${HC_a.toFixed(3)} kg/a`,'DWA-A 102-2'],
+        ['First-Flush Volumen',`${ffVol.toFixed(1)} m³`,'DWA-A 102, Tab.6'],
+        ['First-Flush C_SS',`${ffC_SS.toFixed(0)} mg/L`,'DWA-A 102'],
+        ['Behandlung erforderlich',needTreat?'Ja':'Nein','DWA-A 102-2'],
+        ['Empfehlung',treatRec,'—']];
+      pdfTable(doc,rows,['Parameter','Wert','Norm'],[65,60,55],M,y,CW);y+=rows.length*7+8;
+    } else if(mod===7){
+      const {Que,VR,Vspez,etaAFS,nuest,nuOk,inputs}=lastResult;
+      const rows=[['Überfallwehr Q_ü',`${Que.toFixed(1)} L/s`,'DWA-A 166 §5.3'],
+        ['Retentionsvolumen V_R',`${VR.toFixed(1)} m³`,'DWA-A 117'],
+        ['V_spez',`${Vspez.toFixed(1)} m³/ha`,'DWA-A 166'],
+        ['η_AFS',`${(etaAFS*100).toFixed(0)} %`,'DWA-A 166 Anh. A'],
+        ['Aktivierungsfrequenz n_ü',`≈${nuest}/Jahr`,'DWA-A 166 §4.2.1'],
+        ['n_ü ≤ 12/a',nuOk?'✅ Eingehalten':'❌ Überschreitung','DWA-A 166 §4.2.1']];
+      pdfTable(doc,rows,['Parameter','Wert','Norm'],[70,55,55],M,y,CW);y+=rows.length*7+8;
+    } else if(mod===8){
+      const {Cmix_COD,Cmix_nh4,Cmix_afs,L_COD,L_nh4,L_afs,needRKB,inputs}=lastResult;
+      const rows=[['Q_s',`${inputs.Qs} L/s`,'—'],['Q_r',`${inputs.Qr} L/s`,'—'],
+        ['C_mix COD',`${Cmix_COD.toFixed(1)} mg/L`,'DWA-M 153 Gl.(3)'],
+        ['C_mix NH₄-N',`${Cmix_nh4.toFixed(1)} mg/L`,'DWA-M 153'],
+        ['C_mix AFS',`${Cmix_afs.toFixed(0)} mg/L`,'DWA-M 153'],
+        ['L_COD',`${L_COD.toFixed(0)} kg/a`,'DWA-M 153'],
+        ['L_NH₄-N',`${L_nh4.toFixed(0)} kg/a`,'DWA-M 153'],
+        ['Entscheidung',needRKB?'RKB erforderlich':'RRB ausreichend','DWA-M 153 Kap.4']];
+      pdfTable(doc,rows,['Parameter','Wert','Norm'],[65,55,60],M,y,CW);y+=rows.length*7+8;
+    }
+    // Normative references section
+    if(y>230){doc.addPage();y=20;}
+    y+=4;doc.setDrawColor(...dwa);doc.setLineWidth(.4);doc.line(M,y,W-M,y);y+=8;
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(...dwa);
+    doc.text('Angewandte Normen / Applied Standards',M,y);y+=7;
+    const usedNorms=['DWA-A 118 (März 2006)','DWA-A 531 (2012)','DWA-A 110 (Nov. 2006)','DWA-A 117 (2013)',
+      'DWA-A 138 (April 2005)','DWA-A 102-2 (2020)','DWA-A 166 (2013)','DWA-M 153 (2007)',
+      'AbwV (2004)','KOSTRA-DWD 2020','DIN EN 476','DIN 18130'];
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...dk);
+    usedNorms.forEach((n,i)=>{
+      if(i%2===0&&y>270){doc.addPage();y=20;}
+      doc.text(`• ${n}`,M+2+(i%2===0?0:95),y+(Math.floor(i/2)%1===0?0:0));
+      if(i%2===1)y+=6;
+    });
+    y+=12;
+    // Signature block
+    if(y>250){doc.addPage();y=20;}
+    doc.setFillColor(...gr);doc.rect(M,y,CW,20,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...mid);
+    doc.text('Erstellt von / Prepared by:',M+4,y+8);doc.text('Datum / Date:',M+75,y+8);doc.text('Geprüft von / Checked by:',M+115,y+8);
+    doc.setDrawColor(...mid);doc.line(M+4,y+18,M+65,y+18);doc.line(M+75,y+18,M+110,y+18);doc.line(M+115,y+18,M+190,y+18);
+    // Footer
+    const np=doc.getNumberOfPages();
+    for(let p=1;p<=np;p++){
+      doc.setPage(p);doc.setFillColor(...dwa);doc.rect(0,287,210,10,'F');
+      doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(255,255,255);
+      doc.text('DWA Hydraulik-Rechner v2 · Berechnet konform zu DWA-Regelwerk',M,293);
+      doc.text(`Seite ${p} / ${np}`,W-M,293,{align:'right'});
+    }
+    doc.save(`DWA_Modul${lastResult.mod}_${(proj).replace(/\s/g,'_')}_${new Date().toISOString().slice(0,10)}.pdf`);
+    st.textContent=t('pdfdone');btn.disabled=false;
+  }catch(e){st.textContent='Fehler: '+e.message;btn.disabled=false;}
+}
+function pdfTable(doc,rows,hds,ws,x,y,tw){
+  const dwa=[0,75,135],gr=[244,245,247],dk=[17,24,39];
+  doc.setFillColor(...dwa);doc.rect(x,y-4,tw,7,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(255,255,255);
+  let cx=x;hds.forEach((h,i)=>{doc.text(h,cx+2,y);cx+=ws[i];});y+=8;
+  rows.forEach((row,ri)=>{
+    if(ri%2===0){doc.setFillColor(...gr);doc.rect(x,y-4,tw,7,'F');}
+    cx=x;row.forEach((cell,i)=>{
+      doc.setFont('helvetica',i===0?'bold':'normal');doc.setFontSize(8);doc.setTextColor(...dk);
+      doc.text(String(cell).slice(0,Math.floor(ws[i]/2.2)+2),cx+2,y);cx+=ws[i];
+    });y+=7;
+  });
+}
+function pdfStep(doc,s,M,y,CW,dwa,dk){
+  doc.setFillColor(240,246,255);doc.roundedRect(M,y-4,CW,22,2,2,'F');
+  doc.setDrawColor(...dwa);doc.setLineWidth(.7);doc.line(M,y-4,M,y+18);
+  doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...dwa);doc.text(s.t,M+4,y);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...dk);doc.text(s.b,M+4,y+7);
+  doc.setFont('courier','bold');doc.setFontSize(9);doc.setTextColor(0,51,102);doc.text(s.f,M+4,y+14);
+}
+
+// ════════════════════════════════════════════════════════════
+// SUPABASE INTEGRATION
+// ════════════════════════════════════════════════════════════
+const SUPABASE_URL      = 'https://otnhvbncakwabnyjgxwz.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im90bmh2Ym5jYWt3YWJueWpneHd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NDg1NTIsImV4cCI6MjA5MjAyNDU1Mn0.19I5WuEIcZAwPk9FipNE-4MVO9jW2zIC1MYmJVIfZL4';
+
+const SB={
+  h:{
+    'Content-Type':'application/json',
+    'apikey':SUPABASE_ANON_KEY,
+    'Authorization':'Bearer '+SUPABASE_ANON_KEY,
+    'Prefer':'return=representation'
+  },
+  async get(t,p=''){
+    const r=await fetch(SUPABASE_URL+'/rest/v1/'+t+p,{headers:this.h});
+    if(!r.ok)throw new Error(await r.text());return r.json();},
+  async post(t,b){
+    const r=await fetch(SUPABASE_URL+'/rest/v1/'+t,{method:'POST',headers:this.h,body:JSON.stringify(b)});
+    if(!r.ok)throw new Error(await r.text());return r.json();},
+  async del(t,id){
+    const r=await fetch(SUPABASE_URL+'/rest/v1/'+t+'?id=eq.'+id,{method:'DELETE',headers:this.h});
+    if(!r.ok)throw new Error(await r.text());return true;}
+};
+
+const MOD_NORMS={1:['DWA-A 118 (März 2006)','DWA-A 531 (2012)','KOSTRA-DWD 2020'],
+  2:['DWA-A 110 (Nov. 2006)','DIN EN 476'],3:['DWA-A 117 (2013)'],
+  4:['DWA-A 138 (April 2005)','DIN 18130'],5:['AbwV (2004)','WHG §57','WRRL'],
+  6:['DWA-A 102-2 (2020)','BWK M-3','EN 858'],7:['DWA-A 166 (2013)','DWA-M 178'],
+  8:['DWA-M 153 (2007)','WRRL']};
+const MOD_NAMES={1:'Hydrologie',2:'Kollektoren',3:'Retention',4:'Versickerung',
+  5:'Einleitung',6:'Pluvialqualität',7:'Netzrückhalt',8:'Mischsystem'};
+
+let currentProjectId=null, dbReady=false;
+
+async function initDB(){
+  if(SUPABASE_URL.includes('TU_PROYECTO')){
+    document.getElementById('db-status').innerHTML='<span style="color:#F59E0B;">● Configurar URL</span>';
+    return;
+  }
+  try{
+    await SB.get('projects','?limit=1');
+    dbReady=true;
+    document.getElementById('db-status').innerHTML='<span style="color:#22C55E;">● BD conectada</span>';
+    await loadProjectSelector();
+  }catch(e){
+    document.getElementById('db-status').innerHTML='<span style="color:#EF4444;">● BD offline</span>';
+    console.warn('Supabase error:',e.message);
+  }
+}
+
+async function loadProjectSelector(){
+  if(!dbReady)return;
+  try{
+    const ps=await SB.get('projects','?order=created_at.desc&limit=50');
+    const sel=document.getElementById('project-selector');
+    sel.innerHTML='<option value="">— Seleccionar proyecto —</option>'+
+      ps.map(p=>`<option value="${p.id}"${p.id===currentProjectId?' selected':''}>${p.name} · ${p.engineer}</option>`).join('');
+  }catch(e){console.warn(e);}
+}
+
+async function loadProject(pid){
+  if(!pid||!dbReady)return;
+  currentProjectId=pid;
+  try{
+    const cs=await SB.get('calculations','?project_id=eq.'+pid+'&order=created_at.desc&limit=15');
+    const el=document.getElementById('calc-history');
+    if(!cs.length){el.innerHTML='<div style="font-size:9px;opacity:.5;padding:3px 0;">Sin cálculos</div>';return;}
+    el.innerHTML=cs.map(c=>{
+      const d=new Date(c.created_at).toLocaleDateString('de-DE');
+      const ic=c.has_errors?'❌':c.has_warnings?'⚠️':'✅';
+      return `<div class="hist-item" onclick="restoreCalc('${c.id}',${c.module})">
+        <div style="font-weight:600;font-size:10px;">${ic} M${c.module} — ${c.module_name}</div>
+        <div style="font-size:8.5px;opacity:.6;">${d}</div></div>`;
+    }).join('');
+  }catch(e){console.warn(e);}
+}
+
+async function sbNewProject(){
+  if(!dbReady){showToast('BD no conectada',true);return;}
+  const name=prompt('Nombre del proyecto:');
+  if(!name)return;
+  const eng=document.getElementById('f-eng')?.value||prompt('Ingeniero responsable:')||'Ingeniero';
+  try{
+    const rows=await SB.post('projects',{name,engineer:eng,norm_edition:NORM_VER,language:LANG});
+    const p=Array.isArray(rows)?rows[0]:rows;
+    currentProjectId=p.id;
+    await loadProjectSelector();
+    document.getElementById('project-selector').value=p.id;
+    showToast('Proyecto "'+name+'" creado');
+  }catch(e){showToast('Error: '+e.message,true);}
+}
+
+async function sbSaveCurrentCalc(){
+  if(!dbReady){showToast('BD no conectada',true);return;}
+  if(!lastResult){showToast('Ejecuta un cálculo primero',true);return;}
+  if(!currentProjectId){
+    const name=(document.getElementById('f-proj')?.value)||'Projekt-01';
+    const eng=(document.getElementById('f-eng')?.value)||'Ingeniero';
+    try{
+      const rows=await SB.post('projects',{name,engineer:eng,norm_edition:NORM_VER,language:LANG});
+      const p=Array.isArray(rows)?rows[0]:rows;
+      currentProjectId=p.id;
+      await loadProjectSelector();
+      document.getElementById('project-selector').value=p.id;
+    }catch(e){showToast('Error creando proyecto',true);return;}
+  }
+  const mod=lastResult.mod;
+  try{
+    await SB.post('calculations',{
+      project_id:currentProjectId,
+      module:mod,
+      module_name:MOD_NAMES[mod]||'Modul '+mod,
+      inputs_json:lastResult.inputs||lastResult,
+      results_json:lastResult,
+      norms_cited:MOD_NORMS[mod]||[],
+      has_errors:false,
+      has_warnings:false
+    });
+    showToast('Cálculo M'+mod+' guardado ✅');
+    await loadProject(currentProjectId);
+  }catch(e){showToast('Error: '+e.message,true);}
+}
+
+async function restoreCalc(calcId,moduleNum){
+  if(!dbReady)return;
+  try{
+    const rows=await SB.get('calculations','?id=eq.'+calcId);
+    const calc=rows[0];if(!calc)return;
+    switchModule(moduleNum);
+    setTimeout(()=>restoreInputs(calc.inputs_json,moduleNum),120);
+    showToast('Cálculo restaurado — M'+moduleNum);
+  }catch(e){console.warn(e);}
+}
+
+function restoreInputs(inp,mod){
+  const fm={1:{area:'f-area',duration:'f-dur',returnPeriod:'f-ret',surfType:'f-surf',region:'f-region',project:'f-proj',engineer:'f-eng'},
+    2:{Q:'f2q',I:'f2I',DN:'f2dn',kSt:'f2kst',type:'f2type'},
+    6:{area:'f6area',Vj:'f6vj',ffMM:'f6ff',sens:'f6sens',surf:'f6surf'},
+    7:{ae:'f7ae',Qin:'f7qin',Qab:'f7qab',b:'f7b',h:'f7h',dur:'f7dur'},
+    8:{Qs:'f8qs',Qr:'f8qr',cs:'f8cs',cr:'f8cr',nh4s:'f8nh4s',afss:'f8afss',Vj:'f8vj'}};
+  const map=fm[mod];if(!map)return;
+  Object.entries(map).forEach(([k,fid])=>{
+    const el=document.getElementById(fid);
+    if(el&&inp[k]!==undefined)el.value=inp[k];
+  });
+}
+
+function showToast(msg,isErr=false){
+  let t=document.getElementById('sb-toast');
+  if(!t){t=document.createElement('div');t.id='sb-toast';
+    t.style.cssText='position:fixed;bottom:16px;right:16px;z-index:9999;padding:8px 14px;border-radius:6px;font-size:11px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:opacity .4s;';
+    document.body.appendChild(t);}
+  t.style.background=isErr?'#EF4444':'#22C55E';t.style.color='#fff';
+  t.textContent=msg;t.style.opacity='1';
+  setTimeout(()=>t.style.opacity='0',3200);
+}
+
+// INIT
+buildNav();renderModule(1);
+initDB();
+</script>
+</body>
+</html>
